@@ -22,7 +22,12 @@ import type { SetupStatus } from "@/features/setup/types";
 import { useUpdateMonitor } from "@/features/updates/use-update-monitor";
 import { listUsers } from "@/features/users/api";
 import type { WorkspaceUser } from "@/features/users/types";
-import type { FolderId, MailFolderId, SettingsTabId } from "@/lib/routes";
+import {
+  type FolderId,
+  isPublicAuthenticationPath,
+  type MailFolderId,
+  type SettingsTabId
+} from "@/lib/routes";
 import { useAppRoute } from "@/lib/use-app-route";
 
 const ComposeDialog = React.lazy(() =>
@@ -35,7 +40,7 @@ const DraftComposeDialog = React.lazy(() =>
 );
 
 export function App(): React.ReactElement {
-  const invitationSetup = window.location.pathname === "/set-password";
+  const invitationSetup = isPublicAuthenticationPath(window.location.pathname);
   const [setup, setSetup] = React.useState<SetupStatus | null>(null);
   const [user, setUser] = React.useState<CurrentUser | null>(null);
   const [mailboxes, setMailboxes] = React.useState<Mailbox[]>([]);

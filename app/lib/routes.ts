@@ -33,6 +33,12 @@ export type AppRoute =
   | { kind: "drafts"; draftId: string | null }
   | { kind: "settings"; tab: SettingsTabId };
 
+const publicAuthenticationPaths = new Set(["/set-password"]);
+
+export function isPublicAuthenticationPath(pathname: string): boolean {
+  return publicAuthenticationPaths.has(pathname);
+}
+
 const legacySettingsTabs: Record<string, SettingsTabId> = {
   access: "mailboxes",
   domains: "domains",

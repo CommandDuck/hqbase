@@ -1,6 +1,11 @@
 import * as React from "react";
 
-import { type AppRoute, appRoutePath, readAppRoute } from "@/lib/routes";
+import {
+  type AppRoute,
+  appRoutePath,
+  isPublicAuthenticationPath,
+  readAppRoute
+} from "@/lib/routes";
 
 export function useAppRoute(setupComplete: boolean | undefined): {
   navigate: (route: AppRoute, replace?: boolean) => void;
@@ -25,6 +30,7 @@ export function useAppRoute(setupComplete: boolean | undefined): {
   }, []);
 
   React.useEffect(() => {
+    if (isPublicAuthenticationPath(window.location.pathname)) return;
     if (window.location.pathname === "/setup" && setupComplete !== true) return;
     const canonicalPath = appRoutePath(route);
     if (window.location.pathname === canonicalPath) return;
