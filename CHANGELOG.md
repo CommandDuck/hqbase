@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.1
+
+- Preserve invitation password setup links so `/set-password?token=...` reaches the password form
+  instead of being normalized to the inbox.
+
 ## 1.0.0
 
 - Publish HQBase as one free and open-source shared email workspace for customer-owned Cloudflare
