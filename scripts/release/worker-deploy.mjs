@@ -1,9 +1,9 @@
 import { randomBytes, randomUUID } from "node:crypto";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { readFileSync, rmSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import webpush from "web-push";
 
+import { createRestrictedDirectory } from "../secure-directory.mjs";
 import { isWorkerNotFound } from "./active-version.mjs";
 import { attemptRun, emitCommandOutput, run } from "./command.mjs";
 
@@ -52,7 +52,9 @@ export function deploySource(cwd, options = {}) {
     deployArgs.push("--var", `HQBASE_INSTALLATION_ID:${options.randomUUID?.() ?? randomUUID()}`);
   }
 
-  const workspace = mkdtempSync(resolve(tmpdir(), "hqbase-secrets-"));
+  // The file below holds the auth secret and VAPID keys for the duration of one deploy, so the
+  // directory has to exclude other accounts before anything is written into it.
+  const workspace = createRestrictedDirectory("hqbase-secrets-");
   const secretsFile = resolve(workspace, "secrets.json");
   try {
     const secrets = {};
