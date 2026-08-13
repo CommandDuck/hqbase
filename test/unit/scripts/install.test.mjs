@@ -1,7 +1,13 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { createWranglerConfig } from "../../../scripts/hqbase/config.mjs";
 import { cloudflareOAuthConfig, createManifest } from "../../../scripts/hqbase/install.mjs";
 import { updateOAuthManifest } from "../../../scripts/hqbase/oauth.mjs";
+
+const repositoryWranglerConfig = JSON.parse(
+  readFileSync(resolve(import.meta.dirname, "../../../wrangler.jsonc"), "utf8")
+);
 
 describe("HQBase installation resources", () => {
   it("creates a fresh, unowned manifest before provisioning", () => {
@@ -44,6 +50,20 @@ describe("HQBase installation resources", () => {
       CLOUDFLARE_OAUTH_MODE: "customer"
     });
     expect(config.observability.logs.invocation_logs).toBe(false);
+  });
+
+  it("routes Worker-owned paths ahead of the single-page-application fallback", () => {
+    const config = createWranglerConfig(createManifest("qa", {}));
+
+    expect(config.assets.run_worker_first).toEqual(["/api/*", "/mcp", "/mcp/*", "/.well-known/*"]);
+  });
+
+  it("keeps asset routing identical to the repository Wrangler configuration", () => {
+    const config = createWranglerConfig(createManifest("qa", {}));
+    const { directory: _generated, ...generated } = config.assets;
+    const { directory: _repository, ...repository } = repositoryWranglerConfig.assets;
+
+    expect(generated).toEqual(repository);
   });
 
   it("fails closed on incomplete customer-managed OAuth configuration", () => {
