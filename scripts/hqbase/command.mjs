@@ -1,5 +1,4 @@
-import { spawnSync } from "node:child_process";
-
+import { spawnProcess } from "../shell.mjs";
 import { rootDir } from "./paths.mjs";
 
 export function run(command, args = [], options = {}) {
@@ -10,7 +9,7 @@ export function run(command, args = [], options = {}) {
   }
 
   console.log(`$ ${label}`);
-  const result = spawnSync(command, args, {
+  const result = spawnProcess(command, args, {
     cwd: rootDir,
     encoding: "utf8",
     env: {
@@ -30,7 +29,10 @@ export function run(command, args = [], options = {}) {
   }
 
   if (result.status !== 0 && !options.allowFailure) {
-    throw new Error(`Command failed (${result.status ?? "signal"}): ${label}`);
+    // A missing status means the child never reported an exit code. On POSIX that is a signal,
+    // but on Windows it is usually a spawn failure whose cause lives only in `result.error`.
+    const detail = result.error ? ` (${result.error.message})` : "";
+    throw new Error(`Command failed (${result.status ?? "no exit code"}): ${label}${detail}`);
   }
 
   return `${stdout}${stderr}`;
