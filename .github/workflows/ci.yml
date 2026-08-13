@@ -25,3 +25,22 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
       - run: pnpm deploy:dry-run
+
+  # The terminal install path is supported on Windows, where process spawning, path handling and
+  # file permissions differ enough that a Linux-only gate cannot cover them.
+  quality-windows:
+    runs-on: windows-latest
+    env:
+      BETTER_AUTH_SECRET: ci-auth-secret-not-used-in-production
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11.7.0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+      - run: pnpm deploy:dry-run
