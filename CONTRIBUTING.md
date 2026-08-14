@@ -19,6 +19,11 @@ For a local checkout of the main application:
 ```sh
 pnpm install
 pnpm db:migrate:local
+pnpm db:seed:local
 pnpm check
 pnpm deploy:dry-run
 ```
+
+The optional seed command uses `HQBASE_LOCAL_SEED_PASSWORD` from `.dev.vars` and writes directly to
+local D1. See the public [contributing guide](https://hqbase.io/docs/maintainers/contributing/) for
+the demo login and destructive local reset workflow.

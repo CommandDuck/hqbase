@@ -14,10 +14,24 @@ infrastructure.
 ```sh
 pnpm install
 pnpm db:migrate:local
+pnpm db:seed:local
 pnpm dev
 ```
 
-Open `http://localhost:8787/setup`.
+Set `BETTER_AUTH_SECRET` and a local-only `HQBASE_LOCAL_SEED_PASSWORD` of 8 to 128 characters in
+`.dev.vars` before running the optional seed command. It writes only to local D1 and does not contact
+Cloudflare OAuth. Open `http://localhost:8787/` and sign in as `owner@hqbase.test` with that
+password.
+
+To discard all local D1 data, rebuild the schema, and recreate the demo workspace:
+
+```sh
+pnpm db:reset:local
+pnpm db:seed:local
+```
+
+The reset command is destructive and local-only. To exercise first-run setup instead, omit the seed
+command and open `http://localhost:8787/setup`.
 
 For presentation-only onboarding work:
 
