@@ -1,7 +1,7 @@
 import { createHash, generateKeyPairSync, sign } from "node:crypto";
 import { existsSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   inspectActiveRelease,
@@ -20,6 +20,7 @@ import {
   verifyManifest,
   workerNameFromConfig
 } from "../../../scripts/release/deploy.mjs";
+import { foreignTrustees } from "../../../scripts/secure-directory.mjs";
 
 describe("HQBase release deployment", () => {
   it("verifies product-bound manifests", () => {
@@ -255,7 +256,13 @@ describe("HQBase release deployment", () => {
         expect(args.at(-2)).toBe("--secrets-file");
         expect(cwd).toBe("/customer/repo");
         secretFile = args.at(-1);
-        expect(statSync(secretFile).mode & 0o777).toBe(0o600);
+        // Windows has no POSIX file modes, so the secret is protected there by the access
+        // control list on its containing directory instead of by the file mode.
+        if (process.platform === "win32") {
+          expect(foreignTrustees(dirname(secretFile))).toEqual([]);
+        } else {
+          expect(statSync(secretFile).mode & 0o777).toBe(0o600);
+        }
         expect(JSON.parse(readFileSync(secretFile, "utf8"))).toEqual({
           BETTER_AUTH_SECRET: Buffer.alloc(32, 7).toString("base64url"),
           VAPID_PUBLIC_KEY: "generated-public-key",

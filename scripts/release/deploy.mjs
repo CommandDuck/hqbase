@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { randomUUID } from "node:crypto";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
@@ -53,7 +53,7 @@ export async function deploy(options = {}) {
     const archive = resolve(workspace, "release.tar.gz");
     const source = resolve(workspace, "source");
     writeFileSync(archive, bytes);
-    run("mkdir", ["-p", source], root);
+    mkdirSync(source, { recursive: true });
     run("tar", ["-xzf", archive, "-C", source], root);
     const config = normalizeConfig(
       JSON.parse(readFileSync(configFile, "utf8")),

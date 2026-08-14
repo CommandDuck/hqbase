@@ -144,6 +144,9 @@ importers:
       autoprefixer:
         specifier: ^10.4.21
         version: 10.5.2(postcss@8.5.23)
+      cross-spawn:
+        specifier: 7.0.6
+        version: 7.0.6
       postcss:
         specifier: 8.5.23
         version: 8.5.23
