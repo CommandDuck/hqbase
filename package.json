@@ -9,7 +9,7 @@
     "minimumVersion": "1.0.0"
   },
   "scripts": {
-    "dev": "wrangler dev --port 8787",
+    "dev": "pnpm build && wrangler dev --port 8787",
     "dev:vite": "vite --host 127.0.0.1 --port 5173",
     "dev:setup-ui": "vite --host 127.0.0.1 --port 5173 --open /__ui/setup?state=loading",
     "build": "vite build && node scripts/build-pwa.mjs && node scripts/check-setup-preview-boundary.mjs",
