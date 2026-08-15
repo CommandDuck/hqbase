@@ -1,6 +1,11 @@
 import { Hono } from "hono";
 
 import { createAuth } from "../auth/auth";
+import {
+  approveDeviceAuthorization,
+  enforceDeviceVerificationRateLimit,
+  handleDeviceTokenRequest
+} from "../auth/device-authorization";
 import { MailApiAuthError, mailApiChallenge } from "../auth/mail-api";
 import { auditRoutes } from "../features/audit/routes";
 import { domainRoutes } from "../features/domains/routes";
@@ -74,6 +79,14 @@ apiRoutes.route("/api/v1", mailApiRoutes);
 
 apiRoutes.all("/api/auth/*", async (c) => {
   const pathname = new URL(c.req.raw.url).pathname;
+  if (pathname === "/api/auth/device" && c.req.method === "GET") {
+    await enforceDeviceVerificationRateLimit(c.env, c.req.raw);
+  }
+
+  if (pathname === "/api/auth/device/approve" && c.req.method === "POST") {
+    return approveDeviceAuthorization(c.env, c.req.raw);
+  }
+
   if (pathname === "/api/auth/sign-up/email") {
     return c.json(
       errorBody("SIGNUP_DISABLED", "Public signup is disabled. Use setup or admin user creation."),
@@ -127,5 +140,9 @@ apiRoutes.all("/api/auth/*", async (c) => {
     ]);
   }
 
-  return createAuth(c.env, c.req.raw).handler(c.req.raw);
+  const handleAuthRequest = () => createAuth(c.env, c.req.raw).handler(c.req.raw);
+  if (pathname === "/api/auth/oauth2/token" && c.req.method === "POST") {
+    return handleDeviceTokenRequest(c.env, c.req.raw, handleAuthRequest);
+  }
+  return handleAuthRequest();
 });

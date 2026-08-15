@@ -27,7 +27,7 @@ export function createWranglerConfig(manifest) {
       directory: `${rootFromDeployment}/dist`,
       binding: "ASSETS",
       not_found_handling: "single-page-application",
-      run_worker_first: ["/api/*", "/mcp", "/mcp/*", "/.well-known/*"]
+      run_worker_first: ["/api/*", "/mcp", "/mcp/*", "/.well-known/*", "/AGENTS.md"]
     },
     observability: {
       enabled: true,

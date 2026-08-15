@@ -38,13 +38,30 @@ test("deployed HQBase PWA shell is ready", async ({ page, request }) => {
 });
 
 test("deployed HQBase publishes the v1 Mail API OAuth resource", async ({ request }) => {
+  const origin = new URL(stagingUrl).origin;
   const response = await request.get("/.well-known/oauth-protected-resource/api/v1");
   expect(response.ok()).toBeTruthy();
   await expect(response.json()).resolves.toMatchObject({
-    resource: `${new URL(stagingUrl).origin}/api/v1`,
-    authorization_servers: [`${new URL(stagingUrl).origin}/api/auth`],
+    resource: `${origin}/api/v1`,
+    authorization_servers: [`${origin}/api/auth`],
     scopes_supported: ["mail:read", "mail:write", "mail:send"]
   });
+
+  const authorization = await request.get("/.well-known/oauth-authorization-server/api/auth");
+  expect(authorization.ok()).toBeTruthy();
+  await expect(authorization.json()).resolves.toMatchObject({
+    device_authorization_endpoint: `${origin}/api/auth/device/code`,
+    token_endpoint: `${origin}/api/auth/oauth2/token`,
+    grant_types_supported: expect.arrayContaining(["urn:ietf:params:oauth:grant-type:device_code"])
+  });
+
+  const instructions = await request.get("/AGENTS.md");
+  expect(instructions.ok()).toBeTruthy();
+  const instructionsText = await instructions.text();
+  expect(instructionsText).toContain("Prefer Device Authorization");
+  expect(instructionsText).toContain(
+    "Do not open, navigate to, or interact with the verification URL in Cloud Browser"
+  );
 });
 
 test("customer-managed OAuth starts directly with the exact staging callback", async ({

@@ -66,7 +66,7 @@
     }
   },
   "dependencies": {
-    "@better-auth/oauth-provider": "1.7.0-rc.2",
+    "@better-auth/oauth-provider": "1.7.0-rc.6",
     "@modelcontextprotocol/sdk": "1.29.0",
     "@radix-ui/react-accordion": "^1.2.16",
     "@radix-ui/react-avatar": "^1.1.10",
@@ -84,7 +84,7 @@
     "@tiptap/extension-placeholder": "^3.27.3",
     "@tiptap/react": "^3.27.3",
     "@tiptap/starter-kit": "^3.27.3",
-    "better-auth": "1.7.0-rc.2",
+    "better-auth": "1.7.0-rc.6",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "hono": "^4.8.5",

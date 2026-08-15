@@ -1,4 +1,4 @@
-import { oauthProvider } from "@better-auth/oauth-provider";
+import { oauthDeviceAuthorization, oauthProvider } from "@better-auth/oauth-provider";
 import { betterAuth } from "better-auth";
 import { admin } from "better-auth/plugins";
 import { recordAudit } from "../features/audit/service";
@@ -20,6 +20,11 @@ export function createAuth(env: WorkerEnv, request: Request) {
     database: env.DB,
     disabledPaths: ["/token"],
     secret: env.BETTER_AUTH_SECRET,
+    account: {
+      fields: {
+        accountId: "providerAccountId"
+      }
+    },
     emailAndPassword: {
       enabled: true,
       minPasswordLength: 8,
@@ -62,6 +67,11 @@ export function createAuth(env: WorkerEnv, request: Request) {
       oauthProvider({
         allowDynamicClientRegistration: true,
         allowUnauthenticatedClientRegistration: true,
+        clientRegistrationAllowedResources: [
+          mcpResource(env, request),
+          mcpFullResource(env, request),
+          mailApiResource(env, request)
+        ],
         clientRegistrationAllowedScopes: ["mail:write", "mail:send", "offline_access"],
         clientRegistrationDefaultScopes: ["mail:read"],
         consentPage: "/oauth/consent",
@@ -81,6 +91,11 @@ export function createAuth(env: WorkerEnv, request: Request) {
           mailApiResource(env, request)
         ],
         enforcePerClientResources: false
+      }),
+      oauthDeviceAuthorization({
+        expiresIn: "15m",
+        interval: "5s",
+        verificationUri: "/device"
       })
     ]
   });

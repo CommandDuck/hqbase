@@ -55,7 +55,13 @@ describe("HQBase installation resources", () => {
   it("routes Worker-owned paths ahead of the single-page-application fallback", () => {
     const config = createWranglerConfig(createManifest("qa", {}));
 
-    expect(config.assets.run_worker_first).toEqual(["/api/*", "/mcp", "/mcp/*", "/.well-known/*"]);
+    expect(config.assets.run_worker_first).toEqual([
+      "/api/*",
+      "/mcp",
+      "/mcp/*",
+      "/.well-known/*",
+      "/AGENTS.md"
+    ]);
   });
 
   it("keeps asset routing identical to the repository Wrangler configuration", () => {

@@ -1,6 +1,6 @@
 import { env, SELF } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
-
+import mailApiOpenApi from "../../../api/hqbase-mail-api-v1.openapi.json";
 import initialMigration from "../../../migrations/0001_initial.sql?raw";
 import workspaceMigration from "../../../migrations/0002_workspace.sql?raw";
 import oauthResourcesMigration from "../../../migrations/0003_oauth_resources.sql?raw";
@@ -8,6 +8,7 @@ import conversationMigration from "../../../migrations/0004_conversations.sql?ra
 import threadRebuildMigration from "../../../migrations/0005_rebuild_threads.sql?raw";
 import userOnboardingMigration from "../../../migrations/0008_user_onboarding.sql?raw";
 import loginEmailDomainMigration from "../../../migrations/0009_login_email_domain_isolation.sql?raw";
+import deviceAuthorizationMigration from "../../../migrations/0010_oauth_device_authorization.sql?raw";
 import { createAuth } from "../../../worker/auth/auth";
 import { tokenRow } from "./mail-api-token-fixture";
 import { migrationStatements } from "./migration-statements";
@@ -32,7 +33,8 @@ describe("HQBase Mail API v1", () => {
       conversationMigration,
       threadRebuildMigration,
       userOnboardingMigration,
-      loginEmailDomainMigration
+      loginEmailDomainMigration,
+      deviceAuthorizationMigration
     ]) {
       await applyMigration(migration);
     }
@@ -218,7 +220,9 @@ describe("HQBase Mail API v1", () => {
     await expect(metadata.json()).resolves.toMatchObject({
       resource: apiResource,
       authorization_servers: [`${origin}/api/auth`],
-      scopes_supported: scopes
+      scopes_supported: scopes,
+      resource_name: "HQBase Mail API",
+      resource_documentation: `${origin}/AGENTS.md`
     });
 
     const rejected = await SELF.fetch(`${origin}/api/v1/messages`);
@@ -228,6 +232,52 @@ describe("HQBase Mail API v1", () => {
     );
     expect(rejected.headers.get("www-authenticate")).toContain('scope="mail:read"');
     expect(rejected.headers.get("x-request-id")).toBeTruthy();
+  });
+
+  it("publishes instance-adjusted agent instructions and OpenAPI discovery", async () => {
+    const agents = await SELF.fetch(`${origin}/AGENTS.md`);
+    expect(agents.status).toBe(200);
+    expect(agents.headers.get("content-type")).toContain("text/markdown");
+    expect(agents.headers.get("access-control-allow-origin")).toBe("*");
+    const instructions = await agents.text();
+    expect(instructions).toContain(`- Instance origin: ${origin}`);
+    expect(instructions).toContain(`- API base URL: ${apiResource}`);
+    expect(instructions).toContain(`- OpenAPI contract: ${origin}/api/v1/openapi.json`);
+    expect(instructions).toContain(`resource=${apiResource}`);
+    expect(instructions).toContain("urn:ietf:params:oauth:grant-type:device_code");
+    expect(instructions).toContain("verification_uri_complete");
+    expect(instructions).toContain("authorization_pending");
+    expect(instructions).toContain("Prefer Device Authorization");
+    expect(instructions).toContain(
+      "Do not open, navigate to, or interact with the verification URL in Cloud Browser"
+    );
+    expect(instructions).toContain("The person must open it themselves in a browser they control");
+    expect(instructions).toContain("Sending and replying are not idempotent");
+    for (const [path, pathItem] of Object.entries(mailApiOpenApi.paths)) {
+      for (const method of ["get", "post", "patch", "delete"] as const) {
+        if (method in pathItem) {
+          expect(instructions).toContain(`\`${method.toUpperCase()} ${path}\``);
+        }
+      }
+    }
+
+    const openApi = await SELF.fetch(`${origin}/api/v1/openapi.json`);
+    expect(openApi.status).toBe(200);
+    expect(openApi.headers.get("content-type")).toContain("application/json");
+    const document = (await openApi.json()) as {
+      externalDocs: { url: string };
+      servers: Array<{ url: string }>;
+    };
+    expect(document.servers).toEqual([{ url: origin, description: "This HQBase installation" }]);
+    expect(document.externalDocs.url).toBe(`${origin}/AGENTS.md`);
+
+    const head = await SELF.fetch(`${origin}/AGENTS.md`, { method: "HEAD" });
+    expect(head.status).toBe(200);
+    expect(await head.text()).toBe("");
+
+    const rejectedMethod = await SELF.fetch(`${origin}/AGENTS.md`, { method: "POST" });
+    expect(rejectedMethod.status).toBe(405);
+    expect(rejectedMethod.headers.get("allow")).toBe("GET, HEAD");
   });
 
   it("accepts the web session on v1 while legacy mail routes remain cookie-only", async () => {

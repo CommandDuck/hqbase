@@ -9,6 +9,7 @@ import threadRebuildMigration from "../../../migrations/0005_rebuild_threads.sql
 import userMailPreferencesMigration from "../../../migrations/0007_user_mail_preferences.sql?raw";
 import userOnboardingMigration from "../../../migrations/0008_user_onboarding.sql?raw";
 import loginEmailDomainMigration from "../../../migrations/0009_login_email_domain_isolation.sql?raw";
+import deviceAuthorizationMigration from "../../../migrations/0010_oauth_device_authorization.sql?raw";
 import { createAuth } from "../../../worker/auth/auth";
 import { migrationStatements } from "./migration-statements";
 
@@ -43,6 +44,7 @@ describe("Better Auth schema", () => {
     await applyMigration(userMailPreferencesMigration);
     await applyMigration(userOnboardingMigration);
     await applyMigration(loginEmailDomainMigration);
+    await applyMigration(deviceAuthorizationMigration);
   });
 
   it("backfills the Better Auth 1.7 account identity without losing credential rows", async () => {
@@ -117,6 +119,34 @@ describe("Better Auth schema", () => {
       "SELECT status FROM user_onboarding WHERE user_id = 'usr_legacy'"
     ).first();
     expect(onboarding).toBeNull();
+  });
+
+  it("adds the OAuth device-code schema without changing existing accounts", async () => {
+    const clientColumns = await env.DB.prepare("PRAGMA table_info(oauthClient)").all<{
+      name: string;
+    }>();
+    expect(clientColumns.results.map((column) => column.name)).toEqual(
+      expect.arrayContaining(["clientDiscoveryId", "clientCredentialsScopes", "applicationType"])
+    );
+    const columns = await env.DB.prepare("PRAGMA table_info(deviceCode)").all<{ name: string }>();
+    expect(columns.results.map((column) => column.name)).toEqual([
+      "id",
+      "deviceCode",
+      "userCode",
+      "userId",
+      "expiresAt",
+      "status",
+      "lastPolledAt",
+      "pollingInterval",
+      "clientId",
+      "scope",
+      "resources",
+      "oauthClientId",
+      "sessionId"
+    ]);
+    await expect(
+      env.DB.prepare('SELECT email FROM "user" WHERE id = ?').bind("usr_legacy").first()
+    ).resolves.toMatchObject({ email: "legacy@example.com" });
   });
 
   it("stores and returns the signed-in user's default From mailbox", async () => {
