@@ -2,6 +2,9 @@
 
 Public AGPL HQBase product for customer-owned Cloudflare infrastructure.
 
+Always write in Simplified Technical English (ASD-STE100) and follow Zinsser's four principles of
+quality writing: Simplicity, Brevity, Clarity, Humanity.
+
 Read `../hqbase-site/src/content/docs/docs/maintainers/documentation.md` before changing product
 behavior or working across HQBase repositories.
 
