@@ -8,7 +8,7 @@ import { type AuthContext, requireAuthContext } from "./session";
 export const mailApiScopes = ["mail:read", "mail:write", "mail:send"] as const;
 export type MailApiScope = (typeof mailApiScopes)[number];
 export const mailApiMetadataPath = "/.well-known/oauth-protected-resource/api/v1";
-const agentInstructionsPath = "/AGENTS.md";
+const agentSkillPath = "/skills/hqbase-mail/SKILL.md";
 
 export class MailApiAuthError extends AppError {
   readonly authError: "invalid_token" | "insufficient_scope" | null;
@@ -112,7 +112,7 @@ export function handleMailApiMetadata(request: Request, env: WorkerEnv): Respons
       scopes_supported: mailApiScopes,
       bearer_methods_supported: ["header"],
       resource_name: "HQBase Mail API",
-      resource_documentation: `${origin}${agentInstructionsPath}`
+      resource_documentation: `${origin}${agentSkillPath}`
     },
     {
       headers: {

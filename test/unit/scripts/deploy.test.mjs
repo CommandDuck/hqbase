@@ -379,7 +379,15 @@ describe("HQBase release deployment", () => {
     const wranglerConfig = JSON.parse(readFileSync("wrangler.jsonc", "utf8"));
     expect(wranglerConfig.assets).toMatchObject({
       not_found_handling: "single-page-application",
-      run_worker_first: ["/api/*", "/mcp", "/mcp/*", "/.well-known/*", "/AGENTS.md"]
+      run_worker_first: [
+        "/api/*",
+        "/mcp",
+        "/mcp/*",
+        "/.well-known/*",
+        "/skills/hqbase-mail/SKILL.md",
+        "/AGENTS.md",
+        "/agents.md"
+      ]
     });
   });
   it("keeps HQBase product constants out of the Deploy to Cloudflare form", () => {

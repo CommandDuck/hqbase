@@ -1,4 +1,4 @@
-import { Check, Copy, FileText, Sparkles } from "lucide-react";
+import { Check, Copy, Download, FileText, Sparkles } from "lucide-react";
 import * as React from "react";
 
 import { Button } from "@/components/ui/button";
@@ -29,15 +29,15 @@ export function AgentConnectionDialog({
 }: AgentConnectionDialogProps): React.ReactElement {
   const [readOnlyEndpoint, setReadOnlyEndpoint] = React.useState("/mcp");
   const [fullEndpoint, setFullEndpoint] = React.useState("/mcp/full");
-  const [instructionsUrl, setInstructionsUrl] = React.useState("/AGENTS.md");
+  const [skillUrl, setSkillUrl] = React.useState("/skills/hqbase-mail/SKILL.md");
   const readOnlyEndpointId = React.useId();
   const fullEndpointId = React.useId();
-  const instructionsUrlId = React.useId();
+  const skillUrlId = React.useId();
 
   React.useEffect(() => {
     setReadOnlyEndpoint(new URL("/mcp", window.location.origin).toString());
     setFullEndpoint(new URL("/mcp/full", window.location.origin).toString());
-    setInstructionsUrl(new URL("/AGENTS.md", window.location.origin).toString());
+    setSkillUrl(new URL("/skills/hqbase-mail/SKILL.md", window.location.origin).toString());
   }, []);
 
   return (
@@ -57,15 +57,15 @@ export function AgentConnectionDialog({
             <DialogTitle>Connect AI agent</DialogTitle>
           </div>
           <DialogDescription>
-            Connect through MCP or give an agent this installation&apos;s API instructions.
+            Connect through MCP or install this deployment&apos;s Agent Skill.
           </DialogDescription>
         </DialogHeader>
 
         <AgentConnectionDetails
           fullEndpoint={fullEndpoint}
           fullEndpointId={fullEndpointId}
-          instructionsUrl={instructionsUrl}
-          instructionsUrlId={instructionsUrlId}
+          skillUrl={skillUrl}
+          skillUrlId={skillUrlId}
           readOnlyEndpoint={readOnlyEndpoint}
           readOnlyEndpointId={readOnlyEndpointId}
           user={user}
@@ -78,16 +78,16 @@ export function AgentConnectionDialog({
 export function AgentConnectionDetails({
   fullEndpoint,
   fullEndpointId,
-  instructionsUrl,
-  instructionsUrlId,
+  skillUrl,
+  skillUrlId,
   readOnlyEndpoint,
   readOnlyEndpointId,
   user
 }: {
   fullEndpoint: string;
   fullEndpointId: string;
-  instructionsUrl: string;
-  instructionsUrlId: string;
+  skillUrl: string;
+  skillUrlId: string;
   readOnlyEndpoint: string;
   readOnlyEndpointId: string;
   user: CurrentUser;
@@ -104,8 +104,8 @@ export function AgentConnectionDetails({
           <TabsTrigger className="rounded-full px-2 text-xs" value="mcp">
             MCP
           </TabsTrigger>
-          <TabsTrigger className="rounded-full px-2 text-xs" value="agents-md">
-            AGENTS.md
+          <TabsTrigger className="rounded-full px-2 text-xs" value="agent-skill">
+            Agent Skill
           </TabsTrigger>
         </TabsList>
 
@@ -117,29 +117,26 @@ export function AgentConnectionDetails({
             readOnlyEndpointId={readOnlyEndpointId}
           />
         </TabsContent>
-        <TabsContent className="mt-3" value="agents-md">
-          <AgentInstructionsDetails
-            instructionsUrl={instructionsUrl}
-            instructionsUrlId={instructionsUrlId}
-          />
+        <TabsContent className="mt-3" value="agent-skill">
+          <AgentSkillDetails skillUrl={skillUrl} skillUrlId={skillUrlId} />
         </TabsContent>
       </Tabs>
     </>
   );
 }
 
-export function AgentInstructionsDetails({
-  instructionsUrl,
-  instructionsUrlId
+export function AgentSkillDetails({
+  skillUrl,
+  skillUrlId
 }: {
-  instructionsUrl: string;
-  instructionsUrlId: string;
+  skillUrl: string;
+  skillUrlId: string;
 }): React.ReactElement {
   const [copied, setCopied] = React.useState(false);
 
   async function copyUrl(): Promise<void> {
     try {
-      await navigator.clipboard.writeText(instructionsUrl);
+      await navigator.clipboard.writeText(skillUrl);
       setCopied(true);
     } catch {
       setCopied(false);
@@ -154,38 +151,46 @@ export function AgentInstructionsDetails({
             <FileText aria-hidden="true" className="size-4" />
           </span>
           <div className="min-w-0">
-            <p className="font-medium text-foreground">Deployment-local instructions</p>
+            <p className="font-medium text-foreground">Deployment-local Agent Skill</p>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              Give this URL to an agent that can fetch documentation and make HTTP requests.
+              Install the skill or give its URL to an agent that can make HTTP requests.
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <label className="sr-only" htmlFor={instructionsUrlId}>
-            AGENTS.md URL
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <label className="sr-only" htmlFor={skillUrlId}>
+            Agent Skill URL
           </label>
           <Input
             className="min-w-0 font-mono text-base sm:text-xs"
-            id={instructionsUrlId}
+            id={skillUrlId}
             readOnly
-            value={instructionsUrl}
+            value={skillUrl}
             onFocus={(event) => event.currentTarget.select()}
           />
-          <Button
-            aria-label="Copy AGENTS.md URL"
-            onClick={() => void copyUrl()}
-            size="sm"
-            type="button"
-            variant="outline"
-          >
-            {copied ? (
-              <Check aria-hidden="true" data-icon="inline-start" />
-            ) : (
-              <Copy aria-hidden="true" data-icon="inline-start" />
-            )}
-            {copied ? "Copied" : "Copy"}
-          </Button>
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:shrink-0">
+            <Button
+              aria-label="Copy Agent Skill URL"
+              onClick={() => void copyUrl()}
+              size="sm"
+              type="button"
+              variant="outline"
+            >
+              {copied ? (
+                <Check aria-hidden="true" data-icon="inline-start" />
+              ) : (
+                <Copy aria-hidden="true" data-icon="inline-start" />
+              )}
+              {copied ? "Copied" : "Copy URL"}
+            </Button>
+            <Button asChild size="sm" variant="outline">
+              <a download="SKILL.md" href={skillUrl}>
+                <Download aria-hidden="true" data-icon="inline-start" />
+                Download Skill
+              </a>
+            </Button>
+          </div>
         </div>
       </section>
 
