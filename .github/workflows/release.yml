@@ -218,6 +218,8 @@ jobs:
           exit 1
       - name: Bootstrap persistent N-1 staging data
         if: needs.candidate.outputs.previous_tag != ''
+        env:
+          HQBASE_STAGING_MAIL_API_BASE_PATH: /api
         run: pnpm test:e2e:staging:lifecycle
       - name: Apply the exact signed candidate
         run: |

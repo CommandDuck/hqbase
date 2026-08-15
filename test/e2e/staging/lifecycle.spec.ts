@@ -5,6 +5,7 @@ import {
   request as playwrightRequest,
   test
 } from "@playwright/test";
+import { stagingMailApiPath } from "./mail-api-path";
 
 const email = required("HQBASE_STAGING_OWNER_EMAIL");
 const password = required("HQBASE_STAGING_OWNER_PASSWORD");
@@ -154,7 +155,7 @@ test("Track 1 enforces read-only mailbox access and exposes operator diagnostics
     login.ok(),
     `Owner API sign-in failed (${login.status()}): ${await login.text()}`
   ).toBeTruthy();
-  const mailboxesResponse = await request.get("/api/v1/mailboxes");
+  const mailboxesResponse = await request.get(stagingMailApiPath("/mailboxes"));
   expect(mailboxesResponse.ok()).toBeTruthy();
   const mailboxes = (await mailboxesResponse.json()) as Array<{ id: string; address: string }>;
   const mailbox = mailboxes.find((item) => item.address === sender);
@@ -195,13 +196,13 @@ test("Track 1 enforces read-only mailbox access and exposes operator diagnostics
       });
       expect(passwordSetup.ok(), await passwordSetup.text()).toBeTruthy();
     }
-    const visible = await memberRequest.get("/api/v1/mailboxes");
+    const visible = await memberRequest.get(stagingMailApiPath("/mailboxes"));
     expect((await visible.json()) as Array<{ id: string }>).toEqual([
       expect.objectContaining({ id: mailbox?.id })
     ]);
     const revoke = await request.delete(`/api/mailbox-grants/${mailbox?.id}/${member.id}`);
     expect(revoke.status()).toBe(204);
-    const hidden = await memberRequest.get("/api/v1/mailboxes");
+    const hidden = await memberRequest.get(stagingMailApiPath("/mailboxes"));
     expect(hidden.ok()).toBeTruthy();
     expect(await hidden.json()).toEqual([]);
   } finally {
