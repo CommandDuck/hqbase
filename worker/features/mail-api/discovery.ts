@@ -3,8 +3,10 @@ import mailApiDocumentSource from "../../../api/hqbase-mail-api-v1.openapi.json"
 import { authOrigin } from "../../auth/auth";
 import type { WorkerEnv } from "../../lib/env";
 
-export const agentInstructionsPath = "/AGENTS.md";
+export const agentSkillPath = "/skills/hqbase-mail/SKILL.md";
 export const mailApiOpenApiPath = "/api/v1/openapi.json";
+
+const legacyAgentInstructionPaths = new Set(["/AGENTS.md", "/agents.md"]);
 
 const publicDiscoveryCacheControl = "public, max-age=300";
 const apiMethods = ["get", "post", "patch", "delete"] as const;
@@ -24,12 +26,19 @@ const mailApiMethodIndex = buildMethodIndex(mailApiDocument);
 
 export function handleMailApiDiscovery(request: Request, env: WorkerEnv): Response | null {
   const pathname = new URL(request.url).pathname;
-  if (pathname !== agentInstructionsPath && pathname !== mailApiOpenApiPath) return null;
+  const isLegacyAgentInstructionPath = legacyAgentInstructionPaths.has(pathname);
+  if (
+    pathname !== agentSkillPath &&
+    pathname !== mailApiOpenApiPath &&
+    !isLegacyAgentInstructionPath
+  ) {
+    return null;
+  }
 
   const headers = publicDiscoveryHeaders(
-    pathname === agentInstructionsPath
-      ? "text/markdown; charset=utf-8"
-      : "application/json; charset=utf-8"
+    pathname === mailApiOpenApiPath
+      ? "application/json; charset=utf-8"
+      : "text/markdown; charset=utf-8"
   );
   if (request.method !== "GET" && request.method !== "HEAD") {
     headers.set("allow", "GET, HEAD");
@@ -37,11 +46,14 @@ export function handleMailApiDiscovery(request: Request, env: WorkerEnv): Respon
   }
 
   const origin = authOrigin(env, request);
-  const body =
-    pathname === agentInstructionsPath
-      ? buildAgentInstructions(origin)
-      : buildInstanceOpenApi(origin);
-  return new Response(request.method === "HEAD" ? null : body, { headers });
+  if (isLegacyAgentInstructionPath) {
+    headers.set("location", `${origin}${agentSkillPath}`);
+    return new Response(null, { status: 308, headers });
+  }
+
+  const responseBody =
+    pathname === agentSkillPath ? buildAgentSkill(origin) : buildInstanceOpenApi(origin);
+  return new Response(request.method === "HEAD" ? null : responseBody, { headers });
 }
 
 function buildInstanceOpenApi(origin: string): string {
@@ -51,7 +63,7 @@ function buildInstanceOpenApi(origin: string): string {
       servers: [{ url: origin, description: "This HQBase installation" }],
       externalDocs: {
         description: "Connect an AI agent to this HQBase installation",
-        url: `${origin}${agentInstructionsPath}`
+        url: `${origin}${agentSkillPath}`
       }
     },
     null,
@@ -59,13 +71,18 @@ function buildInstanceOpenApi(origin: string): string {
   )}\n`;
 }
 
-function buildAgentInstructions(origin: string): string {
+function buildAgentSkill(origin: string): string {
   const apiBase = `${origin}/api/v1`;
   const openApiUrl = `${origin}${mailApiOpenApiPath}`;
   const resourceMetadataUrl = `${origin}/.well-known/oauth-protected-resource/api/v1`;
   const authorizationMetadataUrl = `${origin}/.well-known/oauth-authorization-server/api/auth`;
 
-  return `# HQBase Agent Instructions
+  return `---
+name: hqbase-mail
+description: Connect to and operate this HQBase installation through its Mail API. Use when a person asks to read, search, organize, draft, or send mail in HQBase.
+---
+
+# HQBase Mail
 
 This document explains how an AI agent can connect to and operate this HQBase installation through its public Mail API.
 

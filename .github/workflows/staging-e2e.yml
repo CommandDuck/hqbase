@@ -91,7 +91,7 @@ jobs:
             "/api/health"
             "/.well-known/oauth-protected-resource/api/v1"
             "/.well-known/oauth-authorization-server/api/auth"
-            "/AGENTS.md"
+            "/skills/hqbase-mail/SKILL.md"
           )
 
           probe() {

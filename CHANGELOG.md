@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Publish the deployment-local Mail API instructions as a valid Agent Skill at
+  `/skills/hqbase-mail/SKILL.md`, add Copy and Download Skill actions, and redirect the earlier
+  `/AGENTS.md` and `/agents.md` paths.
+
 ## 1.1.0
 
 - Add a stable, versioned Mail API for mailboxes, messages, conversations, attachments, drafts,

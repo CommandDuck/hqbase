@@ -60,7 +60,9 @@ describe("HQBase installation resources", () => {
       "/mcp",
       "/mcp/*",
       "/.well-known/*",
-      "/AGENTS.md"
+      "/skills/hqbase-mail/SKILL.md",
+      "/AGENTS.md",
+      "/agents.md"
     ]);
   });
 

@@ -59,9 +59,10 @@ test("deployed HQBase publishes the v1 Mail API OAuth resource", async ({ reques
     grant_types_supported: expect.arrayContaining(["urn:ietf:params:oauth:grant-type:device_code"])
   });
 
-  const instructionsText = await getSuccessfulResponseBody(request, "/AGENTS.md");
-  expect(instructionsText).toContain("Prefer Device Authorization");
-  expect(instructionsText).toContain(
+  const skillText = await getSuccessfulResponseBody(request, "/skills/hqbase-mail/SKILL.md");
+  expect(skillText).toMatch(/^---\nname: hqbase-mail\ndescription: [^\n]+\n---/);
+  expect(skillText).toContain("Prefer Device Authorization");
+  expect(skillText).toContain(
     "Do not open, navigate to, or interact with the verification URL in Cloud Browser"
   );
 });

@@ -222,7 +222,7 @@ describe("HQBase Mail API v1", () => {
       authorization_servers: [`${origin}/api/auth`],
       scopes_supported: scopes,
       resource_name: "HQBase Mail API",
-      resource_documentation: `${origin}/AGENTS.md`
+      resource_documentation: `${origin}/skills/hqbase-mail/SKILL.md`
     });
 
     const rejected = await SELF.fetch(`${origin}/api/v1/messages`);
@@ -234,12 +234,15 @@ describe("HQBase Mail API v1", () => {
     expect(rejected.headers.get("x-request-id")).toBeTruthy();
   });
 
-  it("publishes instance-adjusted agent instructions and OpenAPI discovery", async () => {
-    const agents = await SELF.fetch(`${origin}/AGENTS.md`);
-    expect(agents.status).toBe(200);
-    expect(agents.headers.get("content-type")).toContain("text/markdown");
-    expect(agents.headers.get("access-control-allow-origin")).toBe("*");
-    const instructions = await agents.text();
+  it("publishes an instance-adjusted Agent Skill and OpenAPI discovery", async () => {
+    const skill = await SELF.fetch(`${origin}/skills/hqbase-mail/SKILL.md`);
+    expect(skill.status).toBe(200);
+    expect(skill.headers.get("content-type")).toContain("text/markdown");
+    expect(skill.headers.get("access-control-allow-origin")).toBe("*");
+    const instructions = await skill.text();
+    expect(instructions).toMatch(
+      /^---\nname: hqbase-mail\ndescription: [^\n]+\n---\n\n# HQBase Mail/
+    );
     expect(instructions).toContain(`- Instance origin: ${origin}`);
     expect(instructions).toContain(`- API base URL: ${apiResource}`);
     expect(instructions).toContain(`- OpenAPI contract: ${origin}/api/v1/openapi.json`);
@@ -269,15 +272,23 @@ describe("HQBase Mail API v1", () => {
       servers: Array<{ url: string }>;
     };
     expect(document.servers).toEqual([{ url: origin, description: "This HQBase installation" }]);
-    expect(document.externalDocs.url).toBe(`${origin}/AGENTS.md`);
+    expect(document.externalDocs.url).toBe(`${origin}/skills/hqbase-mail/SKILL.md`);
 
-    const head = await SELF.fetch(`${origin}/AGENTS.md`, { method: "HEAD" });
+    const head = await SELF.fetch(`${origin}/skills/hqbase-mail/SKILL.md`, { method: "HEAD" });
     expect(head.status).toBe(200);
     expect(await head.text()).toBe("");
 
-    const rejectedMethod = await SELF.fetch(`${origin}/AGENTS.md`, { method: "POST" });
+    const rejectedMethod = await SELF.fetch(`${origin}/skills/hqbase-mail/SKILL.md`, {
+      method: "POST"
+    });
     expect(rejectedMethod.status).toBe(405);
     expect(rejectedMethod.headers.get("allow")).toBe("GET, HEAD");
+
+    for (const legacyPath of ["/AGENTS.md", "/agents.md"]) {
+      const redirect = await SELF.fetch(`${origin}${legacyPath}`, { redirect: "manual" });
+      expect(redirect.status).toBe(308);
+      expect(redirect.headers.get("location")).toBe(`${origin}/skills/hqbase-mail/SKILL.md`);
+    }
   });
 
   it("accepts the web session on v1 while legacy mail routes remain cookie-only", async () => {

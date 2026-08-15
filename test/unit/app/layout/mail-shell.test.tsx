@@ -3,10 +3,7 @@ import { describe, expect, it } from "vitest";
 import { MobileNavigation } from "@/components/layout/mobile-navigation";
 import { Sidebar } from "@/components/layout/sidebar";
 import { TopBar } from "@/components/layout/top-bar";
-import {
-  AgentConnectionDetails,
-  AgentInstructionsDetails
-} from "@/features/agents/connection-dialog";
+import { AgentConnectionDetails, AgentSkillDetails } from "@/features/agents/connection-dialog";
 import { LoginPage } from "@/features/auth/login-page";
 import { ComposeWindow } from "@/features/compose/compose-window";
 import { DraftsPage } from "@/features/drafts/drafts-page";
@@ -349,10 +346,10 @@ describe("mail shell", () => {
       <AgentConnectionDetails
         fullEndpoint="https://mail.example.com/mcp/full"
         fullEndpointId="mcp-full-endpoint"
-        instructionsUrl="https://mail.example.com/AGENTS.md"
-        instructionsUrlId="agents-md-url"
         readOnlyEndpoint="https://mail.example.com/mcp"
         readOnlyEndpointId="mcp-read-endpoint"
+        skillUrl="https://mail.example.com/skills/hqbase-mail/SKILL.md"
+        skillUrlId="agent-skill-url"
         user={user}
       />
     );
@@ -361,8 +358,8 @@ describe("mail shell", () => {
     expect(html).not.toContain("https://mail.example.com/mcp/full");
     expect(html).toContain("Read only");
     expect(html).toContain("Mail actions");
-    expect(html).toContain("AGENTS.md");
-    expect(html).not.toContain("https://mail.example.com/AGENTS.md");
+    expect(html).toContain("Agent Skill");
+    expect(html).not.toContain("https://mail.example.com/skills/hqbase-mail/SKILL.md");
     expect(html).toContain('role="tablist"');
     expect(html).toContain('data-state="active"');
     expect(html).toContain('data-state="inactive"');
@@ -375,16 +372,19 @@ describe("mail shell", () => {
     expect(html).not.toContain("Pro");
   });
 
-  it("offers deployment-local instructions without an embedded agent prompt", () => {
+  it("offers the deployment-local Agent Skill as a copyable or downloadable file", () => {
     const html = renderToStaticMarkup(
-      <AgentInstructionsDetails
-        instructionsUrl="https://mail.example.com/AGENTS.md"
-        instructionsUrlId="agents-md-url"
+      <AgentSkillDetails
+        skillUrl="https://mail.example.com/skills/hqbase-mail/SKILL.md"
+        skillUrlId="agent-skill-url"
       />
     );
 
-    expect(html).toContain("https://mail.example.com/AGENTS.md");
-    expect(html).toContain("Copy AGENTS.md URL");
+    expect(html).toContain("https://mail.example.com/skills/hqbase-mail/SKILL.md");
+    expect(html).toContain("Copy Agent Skill URL");
+    expect(html).toContain("Copy URL");
+    expect(html).toContain("Download Skill");
+    expect(html).toContain('download="SKILL.md"');
     expect(html).not.toContain("Ready-made prompt");
     expect(html).not.toContain("Copy prompt");
     expect(html).toContain("contains no account or mail data");

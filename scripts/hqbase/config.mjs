@@ -27,7 +27,15 @@ export function createWranglerConfig(manifest) {
       directory: `${rootFromDeployment}/dist`,
       binding: "ASSETS",
       not_found_handling: "single-page-application",
-      run_worker_first: ["/api/*", "/mcp", "/mcp/*", "/.well-known/*", "/AGENTS.md"]
+      run_worker_first: [
+        "/api/*",
+        "/mcp",
+        "/mcp/*",
+        "/.well-known/*",
+        "/skills/hqbase-mail/SKILL.md",
+        "/AGENTS.md",
+        "/agents.md"
+      ]
     },
     observability: {
       enabled: true,

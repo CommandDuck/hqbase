@@ -71,15 +71,16 @@ describe("mobile application shell", () => {
     expect(composeForm).toContain("pb-[max(1rem,env(safe-area-inset-bottom))]");
   });
 
-  it("keeps the agent dialog inside safe areas with compact MCP and AGENTS.md choices", () => {
+  it("keeps the agent dialog inside safe areas with compact MCP and Agent Skill choices", () => {
     expect(agentConnectionDialog).toContain("100dvh");
     expect(agentConnectionDialog).toContain("safe-area-inset-top");
     expect(agentConnectionDialog).toContain("safe-area-inset-bottom");
     expect(agentConnectionDialog).toContain("overflow-y-auto");
     expect(agentConnectionDialog).toContain("text-base sm:text-xs");
     expect(agentConnectionDialog).toContain('value="mcp"');
-    expect(agentConnectionDialog).toContain('value="agents-md"');
-    expect(agentConnectionDialog).toContain("/AGENTS.md");
+    expect(agentConnectionDialog).toContain('value="agent-skill"');
+    expect(agentConnectionDialog).toContain("/skills/hqbase-mail/SKILL.md");
+    expect(agentConnectionDialog).toContain("Download Skill");
     expect(agentConnectionDialog).toContain("/mcp/full");
     expect(mcpConnectionDetails).toContain('value="read-only"');
     expect(mcpConnectionDetails).toContain('value="mail-actions"');
