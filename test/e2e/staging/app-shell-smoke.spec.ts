@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { type APIRequestContext, expect, test } from "@playwright/test";
 
 const stagingUrl = process.env.HQBASE_STAGING_URL ?? "";
 const oauthClientId = process.env.HQBASE_STAGING_OAUTH_CLIENT_ID ?? "";
@@ -39,25 +39,27 @@ test("deployed HQBase PWA shell is ready", async ({ page, request }) => {
 
 test("deployed HQBase publishes the v1 Mail API OAuth resource", async ({ request }) => {
   const origin = new URL(stagingUrl).origin;
-  const response = await request.get("/.well-known/oauth-protected-resource/api/v1");
-  expect(response.ok()).toBeTruthy();
-  await expect(response.json()).resolves.toMatchObject({
+  const metadata = await getSuccessfulResponseBody(
+    request,
+    "/.well-known/oauth-protected-resource/api/v1"
+  );
+  expect(JSON.parse(metadata)).toMatchObject({
     resource: `${origin}/api/v1`,
     authorization_servers: [`${origin}/api/auth`],
     scopes_supported: ["mail:read", "mail:write", "mail:send"]
   });
 
-  const authorization = await request.get("/.well-known/oauth-authorization-server/api/auth");
-  expect(authorization.ok()).toBeTruthy();
-  await expect(authorization.json()).resolves.toMatchObject({
+  const authorization = await getSuccessfulResponseBody(
+    request,
+    "/.well-known/oauth-authorization-server/api/auth"
+  );
+  expect(JSON.parse(authorization)).toMatchObject({
     device_authorization_endpoint: `${origin}/api/auth/device/code`,
     token_endpoint: `${origin}/api/auth/oauth2/token`,
     grant_types_supported: expect.arrayContaining(["urn:ietf:params:oauth:grant-type:device_code"])
   });
 
-  const instructions = await request.get("/AGENTS.md");
-  expect(instructions.ok()).toBeTruthy();
-  const instructionsText = await instructions.text();
+  const instructionsText = await getSuccessfulResponseBody(request, "/AGENTS.md");
   expect(instructionsText).toContain("Prefer Device Authorization");
   expect(instructionsText).toContain(
     "Do not open, navigate to, or interact with the verification URL in Cloud Browser"
@@ -83,3 +85,17 @@ test("customer-managed OAuth starts directly with the exact staging callback", a
   expect(target.searchParams.get("scope")).toContain("email-routing-rule.write");
   expect(target.searchParams.get("code_challenge_method")).toBe("S256");
 });
+
+async function getSuccessfulResponseBody(
+  request: APIRequestContext,
+  path: string
+): Promise<string> {
+  const response = await request.get(path);
+  const body = await response.text();
+  const excerpt = body.slice(0, 1_000).replaceAll("\u0000", "\\0");
+  expect(
+    response.status(),
+    `${path} returned HTTP ${response.status()} ${response.statusText()}\n${excerpt}`
+  ).toBe(200);
+  return body;
+}
