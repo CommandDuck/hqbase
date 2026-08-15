@@ -1,3 +1,4 @@
+import { handleMailApiMetadata } from "./auth/mail-api";
 import { handleInboundEmail } from "./email/inbound";
 import { handleMcpRoute } from "./features/mcp/route";
 import { notifyInboundMessage } from "./features/notifications/delivery";
@@ -8,6 +9,8 @@ import { apiRoutes } from "./routes";
 export default {
   async fetch(request: Request, env: WorkerEnv, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
+    const mailApiMetadata = handleMailApiMetadata(request, env);
+    if (mailApiMetadata) return mailApiMetadata;
     const mcpResponse = await handleMcpRoute(request, env, ctx);
     if (mcpResponse) return mcpResponse;
     if (url.pathname.startsWith("/api/")) {

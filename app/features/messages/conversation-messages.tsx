@@ -86,7 +86,7 @@ export function ConversationMessages({
                 {message.attachments.map((attachment) => (
                   <a
                     className="flex w-fit max-w-full items-center gap-2 rounded-md border bg-card px-3 py-2 text-xs hover:bg-muted"
-                    href={`/api/attachments/${attachment.id}`}
+                    href={`/api/v1/attachments/${attachment.id}`}
                     key={attachment.id}
                   >
                     <Download className="size-3.5" />

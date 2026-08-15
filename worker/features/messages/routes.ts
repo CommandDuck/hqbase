@@ -1,12 +1,13 @@
 import { Hono } from "hono";
+import { isVersionedMailApiRequest, requireMailApiContext } from "../../auth/mail-api";
 import { accessibleMailboxIds, requireMailboxAccess } from "../../auth/mailbox-access";
-import { requireAuthContext } from "../../auth/session";
 import type { HonoApp } from "../../lib/env";
 import { AppError } from "../../lib/errors";
 
 import type { MessageAction } from "./actions";
 import { sanitizeMessageHtml } from "./html-sanitizer";
 import { isSafeInlineImage, normalizedContentType } from "./inline-media";
+import { publicMessage } from "./public-message";
 import {
   findAttachment,
   getAttachmentMailboxId,
@@ -26,7 +27,7 @@ export const messageRoutes = new Hono<HonoApp>();
 const actions: readonly MessageAction[] = ["read", "unread", "star", "unstar", "archive", "trash"];
 
 messageRoutes.get("/", async (c) => {
-  const auth = await requireAuthContext(c.env, c.req.raw);
+  const auth = await requireMailApiContext(c.env, c.req.raw, "mail:read");
   const mailboxIds = await accessibleMailboxIds(c.env.DB, auth.user.id, auth.user.role, "read");
   return c.json(
     await listMessages(c.env.DB, {
@@ -39,18 +40,20 @@ messageRoutes.get("/", async (c) => {
 });
 
 messageRoutes.get("/:id/thread", async (c) => {
-  const auth = await requireAuthContext(c.env, c.req.raw);
+  const auth = await requireMailApiContext(c.env, c.req.raw, "mail:read");
   const message = await getMessageDetail(c.env.DB, c.req.param("id"));
   if (!message) {
     throw new AppError("MESSAGE_NOT_FOUND", "Message not found.", 404);
   }
   await requireMailboxAccess(c.env.DB, auth.user.id, auth.user.role, message.mailboxId, "read");
   const mailboxIds = await accessibleMailboxIds(c.env.DB, auth.user.id, auth.user.role, "read");
-  return c.json(await listThreadMessages(c.env.DB, message.threadId, mailboxIds));
+  return c.json(
+    (await listThreadMessages(c.env.DB, message.threadId, mailboxIds)).map(publicMessage)
+  );
 });
 
 messageRoutes.get("/:id", async (c) => {
-  const auth = await requireAuthContext(c.env, c.req.raw);
+  const auth = await requireMailApiContext(c.env, c.req.raw, "mail:read");
   await requireMailboxAccess(
     c.env.DB,
     auth.user.id,
@@ -62,11 +65,11 @@ messageRoutes.get("/:id", async (c) => {
   if (!message) {
     throw new AppError("MESSAGE_NOT_FOUND", "Message not found.", 404);
   }
-  return c.json(message);
+  return c.json(publicMessage(message));
 });
 
 messageRoutes.get("/:id/html", async (c) => {
-  const auth = await requireAuthContext(c.env, c.req.raw);
+  const auth = await requireMailApiContext(c.env, c.req.raw, "mail:read");
   await requireMailboxAccess(
     c.env.DB,
     auth.user.id,
@@ -93,6 +96,7 @@ messageRoutes.get("/:id/html", async (c) => {
     allowRemoteImages: trusted || c.req.query("loadRemoteImages") === "1",
     attachments: message.attachments,
     html: await object.text(),
+    inlineBasePath: isVersionedMailApiRequest(c.req.raw) ? "/api/v1/messages" : "/api/messages",
     messageId: message.id,
     origin: new URL(c.req.url).origin,
     subject: message.subject
@@ -101,7 +105,7 @@ messageRoutes.get("/:id/html", async (c) => {
 });
 
 messageRoutes.post("/:id/remote-media/trust", async (c) => {
-  const auth = await requireAuthContext(c.env, c.req.raw);
+  const auth = await requireMailApiContext(c.env, c.req.raw, "mail:write");
   await requireMailboxAccess(
     c.env.DB,
     auth.user.id,
@@ -118,7 +122,7 @@ messageRoutes.post("/:id/remote-media/trust", async (c) => {
 });
 
 messageRoutes.get("/:id/inline/:attachmentId", async (c) => {
-  const auth = await requireAuthContext(c.env, c.req.raw);
+  const auth = await requireMailApiContext(c.env, c.req.raw, "mail:read");
   await requireMailboxAccess(
     c.env.DB,
     auth.user.id,
@@ -150,7 +154,7 @@ messageRoutes.get("/:id/inline/:attachmentId", async (c) => {
 
 for (const action of actions) {
   messageRoutes.post(`/:id/${action}`, async (c) => {
-    const auth = await requireAuthContext(c.env, c.req.raw);
+    const auth = await requireMailApiContext(c.env, c.req.raw, "mail:write");
     await requireMailboxAccess(
       c.env.DB,
       auth.user.id,
@@ -165,7 +169,7 @@ for (const action of actions) {
 export const attachmentRoutes = new Hono<HonoApp>();
 
 attachmentRoutes.get("/:id", async (c) => {
-  const auth = await requireAuthContext(c.env, c.req.raw);
+  const auth = await requireMailApiContext(c.env, c.req.raw, "mail:read");
   await requireMailboxAccess(
     c.env.DB,
     auth.user.id,

@@ -1,13 +1,13 @@
 import { Hono } from "hono";
-
+import { requireMailApiContext } from "../../auth/mail-api";
 import { requireMailboxAccess } from "../../auth/mailbox-access";
-import { requireAuthContext } from "../../auth/session";
 import type { HonoApp } from "../../lib/env";
 import { AppError } from "../../lib/errors";
 import { readJson } from "../../lib/json";
 import { parseWith } from "../../lib/validation";
 import { enforceRateLimit } from "../../security/rate-limit";
 import { recordAudit } from "../audit/service";
+import { requireDraftAttachmentIdsAccess, requireDraftIdAccess } from "../drafts/access";
 import { findMailboxForSending } from "../mailboxes/queries";
 import { getMessageMailboxId } from "../messages/queries";
 
@@ -17,7 +17,7 @@ import { replyMessageSchema, sendMessageSchema } from "./validation";
 export const sendRoutes = new Hono<HonoApp>();
 
 sendRoutes.post("/send", async (c) => {
-  const authContext = await requireAuthContext(c.env, c.req.raw);
+  const authContext = await requireMailApiContext(c.env, c.req.raw, "mail:send");
   await enforceRateLimit(c.env.DB, c.env.BETTER_AUTH_SECRET, {
     scope: "mail.send",
     subject: authContext.user.id,
@@ -34,6 +34,9 @@ sendRoutes.post("/send", async (c) => {
     mailbox.id,
     "agent"
   );
+  const principal = { role: authContext.user.role, userId: authContext.user.id };
+  await requireDraftIdAccess(c.env, principal, input.draftId);
+  await requireDraftAttachmentIdsAccess(c.env, principal, input.attachmentIds);
   const sent = await sendNewMessage(c.env, input, authContext.user.id);
   await recordAudit(c.env.DB, {
     correlationId: c.get("correlationId"),
@@ -48,7 +51,7 @@ sendRoutes.post("/send", async (c) => {
 });
 
 sendRoutes.post("/reply", async (c) => {
-  const authContext = await requireAuthContext(c.env, c.req.raw);
+  const authContext = await requireMailApiContext(c.env, c.req.raw, "mail:send");
   await enforceRateLimit(c.env.DB, c.env.BETTER_AUTH_SECRET, {
     scope: "mail.reply",
     subject: authContext.user.id,
@@ -72,6 +75,9 @@ sendRoutes.post("/reply", async (c) => {
     mailbox.id,
     "agent"
   );
+  const principal = { role: authContext.user.role, userId: authContext.user.id };
+  await requireDraftIdAccess(c.env, principal, input.draftId);
+  await requireDraftAttachmentIdsAccess(c.env, principal, input.attachmentIds);
   const sent = await replyToMessage(c.env, input, authContext.user.id);
   await recordAudit(c.env.DB, {
     correlationId: c.get("correlationId"),

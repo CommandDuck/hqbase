@@ -19,7 +19,7 @@ const scopeDescriptions: Record<string, string> = {
   offline_access: "Stay connected until you revoke access"
 };
 
-export function McpConsentPage(): React.ReactElement {
+export function OAuthConsentPage(): React.ReactElement {
   const params = React.useMemo(() => new URLSearchParams(window.location.search), []);
   const clientId = params.get("client_id") ?? "";
   const requestedScopes = (params.get("scope") ?? "")
@@ -39,7 +39,7 @@ export function McpConsentPage(): React.ReactElement {
       credentials: "include"
     })
       .then(async (response) => {
-        if (!response.ok) throw new Error("The MCP client could not be verified.");
+        if (!response.ok) throw new Error("The OAuth client could not be verified.");
         setClient((await response.json()) as OAuthClient);
       })
       .catch((cause) => setError(cause instanceof Error ? cause.message : "Authorization failed."));
@@ -72,7 +72,7 @@ export function McpConsentPage(): React.ReactElement {
     }
   }
 
-  const clientName = client?.client_name ?? client?.name ?? "MCP client";
+  const clientName = client?.client_name ?? client?.name ?? "OAuth client";
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-4 py-12">
       <Card className="w-full max-w-md bg-card/70 shadow-none">

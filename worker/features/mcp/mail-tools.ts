@@ -7,6 +7,7 @@ import { AppError } from "../../lib/errors";
 import { recordAudit } from "../audit/service";
 import { listMailboxesForUser } from "../mailboxes/queries";
 import { listConversations, updateConversationAction } from "../messages/conversation-queries";
+import { publicMessage } from "../messages/public-message";
 import {
   findAttachment,
   getAttachmentMailboxId,
@@ -134,7 +135,7 @@ function registerReadTools(server: McpServer, env: WorkerEnv, principal: McpPrin
           "read"
         );
         return Promise.all(
-          (await listThreadMessages(env.DB, message.threadId, mailboxIds)).map(safeMessage)
+          (await listThreadMessages(env.DB, message.threadId, mailboxIds)).map(publicMessage)
         );
       })
   );
@@ -249,14 +250,7 @@ async function readMessage(env: WorkerEnv, principal: McpPrincipal, messageId: s
   );
   const message = await getMessageDetail(env.DB, messageId);
   if (!message) throw new AppError("MESSAGE_NOT_FOUND", "Message not found.", 404);
-  return safeMessage(message);
-}
-
-function safeMessage(message: NonNullable<Awaited<ReturnType<typeof getMessageDetail>>>) {
-  return {
-    ...message,
-    attachments: message.attachments.map(({ r2Key: _r2Key, ...attachment }) => attachment)
-  };
+  return publicMessage(message);
 }
 
 function recordMutation(

@@ -9,8 +9,8 @@ import "./styles.css";
 async function render() {
   const initialTheme = initializeTheme();
   const Component =
-    window.location.pathname === "/mcp/consent"
-      ? (await import("./features/mcp/consent-page")).McpConsentPage
+    window.location.pathname === "/oauth/consent" || window.location.pathname === "/mcp/consent"
+      ? (await import("./features/mcp/consent-page")).OAuthConsentPage
       : import.meta.env.DEV && window.location.pathname === "/__ui/setup"
         ? (await import("./features/setup/setup-preview")).SetupPreview
         : (await import("./app")).App;

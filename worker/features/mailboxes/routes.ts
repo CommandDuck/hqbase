@@ -1,5 +1,6 @@
-import { Hono } from "hono";
+import { type Context, Hono } from "hono";
 
+import { requireMailApiContext } from "../../auth/mail-api";
 import { requireAuthContext, requireRole } from "../../auth/session";
 import type { HonoApp } from "../../lib/env";
 import { readJson } from "../../lib/json";
@@ -16,11 +17,15 @@ import {
 import { createMailboxAddressSchema, createMailboxSchema, updateMailboxSchema } from "./validation";
 
 export const mailboxRoutes = new Hono<HonoApp>();
+export const mailboxReadRoutes = new Hono<HonoApp>();
 
-mailboxRoutes.get("/", async (c) => {
-  const auth = await requireAuthContext(c.env, c.req.raw);
+const listForUser = async (c: Context<HonoApp>) => {
+  const auth = await requireMailApiContext(c.env, c.req.raw, "mail:read");
   return c.json(await listMailboxesForUser(c.env.DB, auth.user.id, auth.user.role));
-});
+};
+
+mailboxRoutes.get("/", listForUser);
+mailboxReadRoutes.get("/", listForUser);
 
 mailboxRoutes.post("/", async (c) => {
   const authContext = await requireAuthContext(c.env, c.req.raw);

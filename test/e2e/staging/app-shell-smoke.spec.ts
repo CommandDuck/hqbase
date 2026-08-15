@@ -37,6 +37,16 @@ test("deployed HQBase PWA shell is ready", async ({ page, request }) => {
   }).toPass({ intervals: [2_000, 5_000, 10_000], timeout: 60_000 });
 });
 
+test("deployed HQBase publishes the v1 Mail API OAuth resource", async ({ request }) => {
+  const response = await request.get("/.well-known/oauth-protected-resource/api/v1");
+  expect(response.ok()).toBeTruthy();
+  await expect(response.json()).resolves.toMatchObject({
+    resource: `${new URL(stagingUrl).origin}/api/v1`,
+    authorization_servers: [`${new URL(stagingUrl).origin}/api/auth`],
+    scopes_supported: ["mail:read", "mail:write", "mail:send"]
+  });
+});
+
 test("customer-managed OAuth starts directly with the exact staging callback", async ({
   request
 }) => {
