@@ -37,7 +37,11 @@ const composeForm = readFileSync(
   new URL("../../../../app/features/compose/compose-form.tsx", import.meta.url),
   "utf8"
 );
-const mcpConnectionDialog = readFileSync(
+const agentConnectionDialog = readFileSync(
+  new URL("../../../../app/features/agents/connection-dialog.tsx", import.meta.url),
+  "utf8"
+);
+const mcpConnectionDetails = readFileSync(
   new URL("../../../../app/features/mcp/connection-dialog.tsx", import.meta.url),
   "utf8"
 );
@@ -67,21 +71,24 @@ describe("mobile application shell", () => {
     expect(composeForm).toContain("pb-[max(1rem,env(safe-area-inset-bottom))]");
   });
 
-  it("keeps the MCP dialog inside the dynamic viewport and device safe areas", () => {
-    expect(mcpConnectionDialog).toContain("100dvh");
-    expect(mcpConnectionDialog).toContain("safe-area-inset-top");
-    expect(mcpConnectionDialog).toContain("safe-area-inset-bottom");
-    expect(mcpConnectionDialog).toContain("overflow-y-auto");
-    expect(mcpConnectionDialog).toContain("text-base sm:text-xs");
-    expect(mcpConnectionDialog).toContain('value="read-only"');
-    expect(mcpConnectionDialog).toContain('value="mail-actions"');
-    expect(mcpConnectionDialog).toContain("/mcp/full");
+  it("keeps the agent dialog inside safe areas with compact MCP and AGENTS.md choices", () => {
+    expect(agentConnectionDialog).toContain("100dvh");
+    expect(agentConnectionDialog).toContain("safe-area-inset-top");
+    expect(agentConnectionDialog).toContain("safe-area-inset-bottom");
+    expect(agentConnectionDialog).toContain("overflow-y-auto");
+    expect(agentConnectionDialog).toContain("text-base sm:text-xs");
+    expect(agentConnectionDialog).toContain('value="mcp"');
+    expect(agentConnectionDialog).toContain('value="agents-md"');
+    expect(agentConnectionDialog).toContain("/AGENTS.md");
+    expect(agentConnectionDialog).toContain("/mcp/full");
+    expect(mcpConnectionDetails).toContain('value="read-only"');
+    expect(mcpConnectionDetails).toContain('value="mail-actions"');
   });
 
-  it("keeps Connect MCP in the desktop sidebar and compact drawer instead of the header", () => {
-    expect(appShell).toContain("Connect MCP");
-    expect(mobileNavigation).toContain("Connect MCP");
-    expect(topBar).not.toContain("Connect MCP");
+  it("keeps Connect AI agent in the desktop sidebar and compact drawer instead of the header", () => {
+    expect(appShell).toContain("Connect AI agent");
+    expect(mobileNavigation).toContain("Connect AI agent");
+    expect(topBar).not.toContain("Connect AI agent");
   });
 
   it("keeps editable field text large enough to avoid iOS focus zoom", () => {

@@ -1,11 +1,11 @@
-import { AppWindow, Cable } from "lucide-react";
+import { AppWindow, Sparkles } from "lucide-react";
 import * as React from "react";
 import { usePanelRef } from "react-resizable-panels";
 import { Button } from "@/components/ui/button";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
+import { AgentConnectionDialog } from "@/features/agents/connection-dialog";
 import type { CurrentUser } from "@/features/auth/types";
 import type { Mailbox } from "@/features/mailboxes/types";
-import { McpConnectionDialog } from "@/features/mcp/connection-dialog";
 import type { UnreadCounts } from "@/features/notifications/types";
 import type { UpdateStatus } from "@/features/updates/types";
 import { UpdateBanner } from "@/features/updates/update-banner";
@@ -50,8 +50,8 @@ type AppShellProps = {
 export function AppShell(props: AppShellProps): React.ReactElement {
   const desktopShell = useDesktopShell();
   const sidebarPanelRef = usePanelRef();
-  const [mcpOpen, setMcpOpen] = React.useState(false);
-  const mcpTriggerRef = React.useRef<HTMLButtonElement>(null);
+  const [agentConnectionOpen, setAgentConnectionOpen] = React.useState(false);
+  const agentConnectionTriggerRef = React.useRef<HTMLButtonElement>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = React.useState(() =>
     readStoredBoolean(sidebarCollapsedStorageKey, false)
   );
@@ -83,16 +83,16 @@ export function AppShell(props: AppShellProps): React.ReactElement {
       {...(desktopShell ? { onToggleSidebar: toggleSidebar } : {})}
     />
   );
-  const mcpAction = (
+  const agentConnectionAction = (
     <Button
       className="h-8 w-full justify-start gap-2.5 px-2.5 text-[13px] font-normal text-muted-foreground"
-      onClick={() => setMcpOpen(true)}
-      ref={mcpTriggerRef}
+      onClick={() => setAgentConnectionOpen(true)}
+      ref={agentConnectionTriggerRef}
       type="button"
       variant="ghost"
     >
-      <Cable data-icon="inline-start" />
-      Connect MCP
+      <Sparkles data-icon="inline-start" />
+      Connect AI agent
     </Button>
   );
 
@@ -129,7 +129,7 @@ export function AppShell(props: AppShellProps): React.ReactElement {
               resizable
               unread={props.unread}
               user={props.user}
-              utilityAction={mcpAction}
+              utilityAction={agentConnectionAction}
               onFolderChange={props.onFolderChange}
               onSignedOut={props.onSignedOut}
             />
@@ -152,7 +152,7 @@ export function AppShell(props: AppShellProps): React.ReactElement {
             mailboxId={props.mailboxId}
             unread={props.unread}
             user={props.user}
-            utilityAction={mcpAction}
+            utilityAction={agentConnectionAction}
             onFolderChange={props.onFolderChange}
             onSignedOut={props.onSignedOut}
           />
@@ -167,11 +167,11 @@ export function AppShell(props: AppShellProps): React.ReactElement {
         onClick={scrollActiveMobileMailSurfaceToTop}
       />
       <DesktopWindowGuard />
-      <McpConnectionDialog
-        open={mcpOpen}
-        restoreFocusRef={mcpTriggerRef}
+      <AgentConnectionDialog
+        open={agentConnectionOpen}
+        restoreFocusRef={agentConnectionTriggerRef}
         user={props.user}
-        onOpenChange={setMcpOpen}
+        onOpenChange={setAgentConnectionOpen}
       />
     </div>
   );

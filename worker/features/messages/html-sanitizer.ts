@@ -141,6 +141,7 @@ export function sanitizeMessageHtml(input: {
   allowRemoteImages: boolean;
   attachments: StoredAttachment[];
   html: string;
+  inlineBasePath?: string;
   messageId: string;
   origin: string;
   subject: string;
@@ -208,6 +209,7 @@ function sanitizeDisplayHtml(input: {
   allowRemoteImages: boolean;
   attachments: StoredAttachment[];
   html: string;
+  inlineBasePath?: string;
   messageId: string;
   origin: string;
 }): Omit<SanitizedMessageHtml, "quotedHtml"> {
@@ -236,7 +238,8 @@ function sanitizeDisplayHtml(input: {
         if (source.toLowerCase().startsWith("cid:")) {
           const attachmentId = contentIds.get(normalizeContentId(source.slice(4)));
           if (attachmentId) {
-            next.src = `${origin}/api/messages/${encodeURIComponent(input.messageId)}/inline/${encodeURIComponent(attachmentId)}`;
+            const basePath = input.inlineBasePath ?? "/api/messages";
+            next.src = `${origin}${basePath}/${encodeURIComponent(input.messageId)}/inline/${encodeURIComponent(attachmentId)}`;
           } else {
             delete next.src;
           }

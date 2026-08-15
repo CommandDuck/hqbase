@@ -1,25 +1,18 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 
-import { type MailboxAccessLevel, requireMailboxAccess } from "../../auth/mailbox-access";
 import type { WorkerEnv } from "../../lib/env";
 import { AppError } from "../../lib/errors";
 import { parseWith } from "../../lib/validation";
 import { recordAudit } from "../audit/service";
+import { getAccessibleDraft, listAccessibleDrafts, requireDraftAccess } from "../drafts/access";
 import {
   addDraftAttachment,
   deleteDraft,
-  draftIdsForAttachmentIds,
-  getDraft,
-  listDrafts,
   removeDraftAttachment,
   saveDraft
 } from "../drafts/queries";
-import type { Draft } from "../drafts/types";
 import { draftSchema } from "../drafts/validation";
-import { listMailboxesForUser } from "../mailboxes/queries";
-import type { Mailbox } from "../mailboxes/types";
-import { getMessageMailboxId } from "../messages/queries";
 
 import type { McpPrincipal } from "./route";
 import { base64File, maxMcpAttachmentBase64Length, toolResult } from "./tool-result";
@@ -51,23 +44,7 @@ export function registerDraftTools(
       description: "List this user's drafts that remain accessible through live mailbox grants.",
       annotations: { readOnlyHint: true, openWorldHint: false }
     },
-    () =>
-      toolResult(async () => {
-        const drafts = await listDrafts(env.DB, principal.userId);
-        const mailboxes = await listMailboxesForUser(env.DB, principal.userId, principal.role);
-        const visibility = await Promise.all(
-          drafts.map(async (draft) => {
-            try {
-              await requireDraftAccess(env, principal, draft, mailboxes);
-              return draft;
-            } catch (error) {
-              if (!(error instanceof AppError)) throw error;
-              return null;
-            }
-          })
-        );
-        return visibility.filter((draft): draft is Draft => draft !== null);
-      })
+    () => toolResult(() => listAccessibleDrafts(env, principal))
   );
 
   server.registerTool(
@@ -79,9 +56,7 @@ export function registerDraftTools(
     },
     ({ draftId }) =>
       toolResult(async () => {
-        const draft = await ownedDraft(env, principal, draftId);
-        await requireDraftAccess(env, principal, draft);
-        return draft;
+        return getAccessibleDraft(env, principal, draftId);
       })
   );
 
@@ -125,8 +100,7 @@ export function registerDraftTools(
     },
     ({ draftId, version, ...changes }) =>
       toolResult(async () => {
-        const current = await ownedDraft(env, principal, draftId);
-        await requireDraftAccess(env, principal, current);
+        const current = await getAccessibleDraft(env, principal, draftId);
         const parsed = parseWith(draftSchema, {
           ...current,
           ...changes,
@@ -149,8 +123,7 @@ export function registerDraftTools(
     },
     ({ draftId }) =>
       toolResult(async () => {
-        const draft = await ownedDraft(env, principal, draftId);
-        await requireDraftAccess(env, principal, draft);
+        await getAccessibleDraft(env, principal, draftId);
         await deleteDraft(env.DB, env.MAIL_OBJECTS, principal.userId, draftId);
         await recordDraftMutation(env, principal, "mcp.draft.delete", draftId);
         return { deleted: true, draftId };
@@ -193,8 +166,7 @@ function registerDraftAttachmentTools(
     },
     (input) =>
       toolResult(async () => {
-        const draft = await ownedDraft(env, principal, input.draftId);
-        await requireDraftAccess(env, principal, draft);
+        const draft = await getAccessibleDraft(env, principal, input.draftId);
         const file = base64File(input);
         const added = await addDraftAttachment(env.DB, principal.userId, draft.id, file);
         await env.MAIL_OBJECTS.put(added.r2Key, file.stream(), {
@@ -217,8 +189,7 @@ function registerDraftAttachmentTools(
     },
     ({ draftId, attachmentId }) =>
       toolResult(async () => {
-        const draft = await ownedDraft(env, principal, draftId);
-        await requireDraftAccess(env, principal, draft);
+        await getAccessibleDraft(env, principal, draftId);
         if (
           !(await removeDraftAttachment(
             env.DB,
@@ -234,72 +205,6 @@ function registerDraftAttachmentTools(
         return { deleted: true, attachmentId, draftId };
       })
   );
-}
-
-export async function requireDraftIdAccess(
-  env: WorkerEnv,
-  principal: McpPrincipal,
-  draftId?: string
-): Promise<void> {
-  if (!draftId) return;
-  await requireDraftAccess(env, principal, await ownedDraft(env, principal, draftId));
-}
-
-export async function requireDraftAttachmentIdsAccess(
-  env: WorkerEnv,
-  principal: McpPrincipal,
-  attachmentIds: string[]
-): Promise<void> {
-  for (const draftId of await draftIdsForAttachmentIds(env.DB, principal.userId, attachmentIds)) {
-    await requireDraftAccess(env, principal, await ownedDraft(env, principal, draftId));
-  }
-}
-
-async function ownedDraft(env: WorkerEnv, principal: McpPrincipal, draftId: string) {
-  const draft = await getDraft(env.DB, principal.userId, draftId);
-  if (!draft) throw new AppError("DRAFT_NOT_FOUND", "Draft not found.", 404);
-  return draft;
-}
-
-async function requireDraftAccess(
-  env: WorkerEnv,
-  principal: McpPrincipal,
-  draft: Pick<Draft, "mailboxId" | "from" | "replyToMessageId" | "forwardOfMessageId">,
-  knownMailboxes?: Array<Mailbox & { accessLevel: MailboxAccessLevel | null }>
-): Promise<void> {
-  let sendingMailboxId = draft.mailboxId;
-  if (draft.from) {
-    const mailboxes =
-      knownMailboxes ?? (await listMailboxesForUser(env.DB, principal.userId, principal.role));
-    const normalizedFrom = draft.from.toLowerCase();
-    const mailbox = mailboxes.find(
-      (candidate) =>
-        candidate.address.toLowerCase() === normalizedFrom ||
-        candidate.addresses.some((address) => address.address.toLowerCase() === normalizedFrom)
-    );
-    if (!mailbox) throw new AppError("MAILBOX_NOT_FOUND", "Sending mailbox not found.", 404);
-    if (sendingMailboxId && sendingMailboxId !== mailbox.id) {
-      throw new AppError(
-        "DRAFT_MAILBOX_MISMATCH",
-        "Draft sender does not belong to the selected mailbox.",
-        400
-      );
-    }
-    sendingMailboxId = mailbox.id;
-  }
-  if (sendingMailboxId) {
-    await requireMailboxAccess(env.DB, principal.userId, principal.role, sendingMailboxId, "agent");
-  }
-  for (const messageId of [draft.replyToMessageId, draft.forwardOfMessageId]) {
-    if (!messageId) continue;
-    await requireMailboxAccess(
-      env.DB,
-      principal.userId,
-      principal.role,
-      await getMessageMailboxId(env.DB, messageId),
-      "agent"
-    );
-  }
 }
 
 function recordDraftMutation(

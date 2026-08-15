@@ -1,11 +1,11 @@
-import { Cable, Menu } from "lucide-react";
+import { Menu, Sparkles } from "lucide-react";
 import * as React from "react";
 
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { AgentConnectionDialog } from "@/features/agents/connection-dialog";
 import type { CurrentUser } from "@/features/auth/types";
 import type { Mailbox } from "@/features/mailboxes/types";
-import { McpConnectionDialog } from "@/features/mcp/connection-dialog";
 import type { UnreadCounts } from "@/features/notifications/types";
 import type { FolderId } from "@/lib/routes";
 import { Sidebar } from "./sidebar";
@@ -34,7 +34,7 @@ export function MobileNavigation({
   onSignedOut
 }: MobileNavigationProps): React.ReactElement {
   const [open, setOpen] = React.useState(false);
-  const [mcpOpen, setMcpOpen] = React.useState(false);
+  const [agentConnectionOpen, setAgentConnectionOpen] = React.useState(false);
   const menuTriggerRef = React.useRef<HTMLButtonElement>(null);
   const drawerRef = React.useRef<HTMLDivElement>(null);
 
@@ -91,13 +91,13 @@ export function MobileNavigation({
                 className="h-11 w-full justify-start gap-2.5 px-2.5 text-sm font-normal text-muted-foreground"
                 onClick={() => {
                   setOpen(false);
-                  setMcpOpen(true);
+                  setAgentConnectionOpen(true);
                 }}
                 type="button"
                 variant="ghost"
               >
-                <Cable data-icon="inline-start" />
-                Connect MCP
+                <Sparkles data-icon="inline-start" />
+                Connect AI agent
               </Button>
             }
             onFolderChange={handleFolderChange}
@@ -107,11 +107,11 @@ export function MobileNavigation({
           />
         </SheetContent>
       </Sheet>
-      <McpConnectionDialog
-        open={mcpOpen}
+      <AgentConnectionDialog
+        open={agentConnectionOpen}
         restoreFocusRef={menuTriggerRef}
         user={user}
-        onOpenChange={setMcpOpen}
+        onOpenChange={setAgentConnectionOpen}
       />
     </>
   );

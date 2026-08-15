@@ -7,13 +7,13 @@ import { AppError } from "../../lib/errors";
 import { parseWith } from "../../lib/validation";
 import { enforceRateLimit } from "../../security/rate-limit";
 import { recordAudit } from "../audit/service";
+import { requireDraftAttachmentIdsAccess, requireDraftIdAccess } from "../drafts/access";
 import { findMailboxForSending } from "../mailboxes/queries";
 import { getMessageMailboxId } from "../messages/queries";
 import { forwardMessage } from "../send/forward";
 import { replyToMessage, sendNewMessage } from "../send/service";
 import { forwardMessageSchema, replyMessageSchema, sendMessageSchema } from "../send/validation";
 
-import { requireDraftAttachmentIdsAccess, requireDraftIdAccess } from "./draft-tools";
 import type { McpPrincipal } from "./route";
 import { toolResult } from "./tool-result";
 

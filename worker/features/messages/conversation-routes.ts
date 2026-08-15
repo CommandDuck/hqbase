@@ -1,8 +1,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
-
+import { requireMailApiContext } from "../../auth/mail-api";
 import { accessibleMailboxIds, requireMailboxAccess } from "../../auth/mailbox-access";
-import { requireAuthContext } from "../../auth/session";
 import type { HonoApp } from "../../lib/env";
 import { parseWith } from "../../lib/validation";
 
@@ -19,7 +18,7 @@ const cursorSchema = z.string().min(1).max(512).optional();
 const actionBodySchema = z.object({ folder: folderSchema });
 
 conversationRoutes.get("/", async (c) => {
-  const auth = await requireAuthContext(c.env, c.req.raw);
+  const auth = await requireMailApiContext(c.env, c.req.raw, "mail:read");
   const mailboxIds = await accessibleMailboxIds(c.env.DB, auth.user.id, auth.user.role, "read");
   const folder = parseWith(folderSchema.optional(), c.req.query("folder"));
   return c.json(
@@ -35,7 +34,7 @@ conversationRoutes.get("/", async (c) => {
 
 for (const action of actions) {
   conversationRoutes.post(`/:id/${action}`, async (c) => {
-    const auth = await requireAuthContext(c.env, c.req.raw);
+    const auth = await requireMailApiContext(c.env, c.req.raw, "mail:write");
     const requiredAccess = action === "read" || action === "unread" ? "read" : "agent";
     await requireMailboxAccess(
       c.env.DB,

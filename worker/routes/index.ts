@@ -1,9 +1,16 @@
 import { Hono } from "hono";
 
 import { createAuth } from "../auth/auth";
+import {
+  approveDeviceAuthorization,
+  enforceDeviceVerificationRateLimit,
+  handleDeviceTokenRequest
+} from "../auth/device-authorization";
+import { MailApiAuthError, mailApiChallenge } from "../auth/mail-api";
 import { auditRoutes } from "../features/audit/routes";
 import { domainRoutes } from "../features/domains/routes";
 import { draftRoutes } from "../features/drafts/routes";
+import { mailApiRoutes } from "../features/mail-api/routes";
 import { mailboxAccessRoutes } from "../features/mailbox-access/routes";
 import { mailboxRoutes } from "../features/mailboxes/routes";
 import { conversationRoutes } from "../features/messages/conversation-routes";
@@ -36,9 +43,15 @@ apiRoutes.use("*", async (c, next) => {
   c.header("cache-control", "no-store");
 });
 
-apiRoutes.onError((error, _c) => {
+apiRoutes.onError((error, c) => {
   const appError = toAppError(error);
-  return jsonResponse(errorBody(appError.code, appError.message), { status: appError.status });
+  const response = jsonResponse(errorBody(appError.code, appError.message), {
+    status: appError.status
+  });
+  if (error instanceof MailApiAuthError) {
+    response.headers.set("www-authenticate", mailApiChallenge(c.env, c.req.raw, error));
+  }
+  return response;
 });
 
 apiRoutes.notFound((c) => {
@@ -62,9 +75,18 @@ apiRoutes.route("/api/attachments", attachmentRoutes);
 apiRoutes.route("/api/users", userRoutes);
 apiRoutes.route("/api/updates", updateRoutes);
 apiRoutes.route("/api", sendRoutes);
+apiRoutes.route("/api/v1", mailApiRoutes);
 
 apiRoutes.all("/api/auth/*", async (c) => {
   const pathname = new URL(c.req.raw.url).pathname;
+  if (pathname === "/api/auth/device" && c.req.method === "GET") {
+    await enforceDeviceVerificationRateLimit(c.env, c.req.raw);
+  }
+
+  if (pathname === "/api/auth/device/approve" && c.req.method === "POST") {
+    return approveDeviceAuthorization(c.env, c.req.raw);
+  }
+
   if (pathname === "/api/auth/sign-up/email") {
     return c.json(
       errorBody("SIGNUP_DISABLED", "Public signup is disabled. Use setup or admin user creation."),
@@ -118,5 +140,9 @@ apiRoutes.all("/api/auth/*", async (c) => {
     ]);
   }
 
-  return createAuth(c.env, c.req.raw).handler(c.req.raw);
+  const handleAuthRequest = () => createAuth(c.env, c.req.raw).handler(c.req.raw);
+  if (pathname === "/api/auth/oauth2/token" && c.req.method === "POST") {
+    return handleDeviceTokenRequest(c.env, c.req.raw, handleAuthRequest);
+  }
+  return handleAuthRequest();
 });

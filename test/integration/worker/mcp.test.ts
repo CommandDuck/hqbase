@@ -8,6 +8,7 @@ import conversationMigration from "../../../migrations/0004_conversations.sql?ra
 import threadRebuildMigration from "../../../migrations/0005_rebuild_threads.sql?raw";
 import userOnboardingMigration from "../../../migrations/0008_user_onboarding.sql?raw";
 import loginEmailDomainMigration from "../../../migrations/0009_login_email_domain_isolation.sql?raw";
+import deviceAuthorizationMigration from "../../../migrations/0010_oauth_device_authorization.sql?raw";
 import { hashOAuthToken } from "../../../worker/auth/oauth-token";
 import { migrationStatements } from "./migration-statements";
 
@@ -36,7 +37,8 @@ describe("HQBase MCP server", () => {
       conversationMigration,
       threadRebuildMigration,
       userOnboardingMigration,
-      loginEmailDomainMigration
+      loginEmailDomainMigration,
+      deviceAuthorizationMigration
     ]) {
       await applyMigration(migration);
     }
@@ -209,7 +211,7 @@ describe("HQBase MCP server", () => {
     });
   });
 
-  it("defaults dynamic registration to read and permits explicit mail-action scopes", async () => {
+  it("registers the allowed scope capabilities while authorization still starts read-only", async () => {
     const metadataResponse = await SELF.fetch(
       `${origin}/.well-known/oauth-authorization-server/api/auth`
     );
@@ -228,7 +230,9 @@ describe("HQBase MCP server", () => {
     });
     expect(registration.status).toBe(201);
     const registered = (await registration.json()) as { scope?: string };
-    expect(registered.scope?.split(" ")).toEqual(["mail:read"]);
+    expect(registered.scope?.split(" ").sort()).toEqual(
+      ["mail:read", "mail:write", "mail:send", "offline_access"].sort()
+    );
 
     const fullRegistration = await SELF.fetch(metadata.registration_endpoint ?? "", {
       body: JSON.stringify({
@@ -242,7 +246,9 @@ describe("HQBase MCP server", () => {
     });
     expect(fullRegistration.status).toBe(201);
     const fullRegistered = (await fullRegistration.json()) as { scope?: string };
-    expect(fullRegistered.scope?.split(" ").sort()).toEqual([...fullScopes].sort());
+    expect(fullRegistered.scope?.split(" ").sort()).toEqual(
+      [...fullScopes, "offline_access"].sort()
+    );
   });
 
   it("publishes distinct OAuth resource metadata and scope challenges", async () => {

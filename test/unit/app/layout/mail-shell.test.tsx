@@ -3,12 +3,15 @@ import { describe, expect, it } from "vitest";
 import { MobileNavigation } from "@/components/layout/mobile-navigation";
 import { Sidebar } from "@/components/layout/sidebar";
 import { TopBar } from "@/components/layout/top-bar";
+import {
+  AgentConnectionDetails,
+  AgentInstructionsDetails
+} from "@/features/agents/connection-dialog";
 import { LoginPage } from "@/features/auth/login-page";
 import { ComposeWindow } from "@/features/compose/compose-window";
 import { DraftsPage } from "@/features/drafts/drafts-page";
 import { InboxPage } from "@/features/inbox/inbox-page";
 import type { Mailbox } from "@/features/mailboxes/types";
-import { McpConnectionDetails } from "@/features/mcp/connection-dialog";
 import { mailboxUnreadLabel } from "@/features/notifications/unread";
 
 const user = {
@@ -61,7 +64,7 @@ describe("mail shell", () => {
     expect(html).toContain("Search mail");
     expect(html).toContain("Compose");
     expect(html).toContain('aria-label="New email"');
-    expect(html).not.toContain("Connect MCP");
+    expect(html).not.toContain("Connect AI agent");
     expect(html).toContain("Open navigation");
     expect(html.indexOf("Open navigation")).toBeLessThan(html.indexOf("Search mail"));
     expect(html).not.toContain("Open profile menu");
@@ -117,7 +120,7 @@ describe("mail shell", () => {
         mailboxId="all"
         unread={unread}
         user={user}
-        utilityAction={<button type="button">Connect MCP</button>}
+        utilityAction={<button type="button">Connect AI agent</button>}
         onFolderChange={() => undefined}
         onSignedOut={() => undefined}
       />
@@ -131,7 +134,7 @@ describe("mail shell", () => {
     expect(html).toContain("2 unread");
     expect(html).toContain("Open profile menu");
     expect(html).toContain("OB");
-    expect(html.indexOf("Connect MCP")).toBeLessThan(html.indexOf("Settings"));
+    expect(html.indexOf("Connect AI agent")).toBeLessThan(html.indexOf("Settings"));
     expect(html.indexOf("Settings")).toBeLessThan(html.indexOf("Open profile menu"));
     expect(html).toContain("Dark mode");
     expect(html).toContain('aria-label="Switch to light mode"');
@@ -183,7 +186,7 @@ describe("mail shell", () => {
           value: "all",
           onChange: () => undefined
         }}
-        utilityAction={<button type="button">Connect MCP</button>}
+        utilityAction={<button type="button">Connect AI agent</button>}
         unread={unread}
         user={user}
         onFolderChange={() => undefined}
@@ -199,8 +202,8 @@ describe("mail shell", () => {
     expect(html).toContain('for="drawer-mailbox-filter">Mailbox</label>');
     expect(html.indexOf(">Mailbox</label>")).toBeLessThan(html.indexOf(">Inbox</span>"));
     expect(html).toContain('aria-current="page"');
-    expect(html).toContain("Connect MCP");
-    expect(html.indexOf("Connect MCP")).toBeLessThan(html.indexOf("Settings"));
+    expect(html).toContain("Connect AI agent");
+    expect(html.indexOf("Connect AI agent")).toBeLessThan(html.indexOf("Settings"));
     expect(html.indexOf("Settings")).toBeLessThan(html.indexOf("Open profile menu"));
     expect(html.match(/border-t pt-2/g)).toHaveLength(2);
   });
@@ -341,11 +344,13 @@ describe("mail shell", () => {
     expect(html).not.toContain("Navigation");
   });
 
-  it("defaults to the read-only MCP profile and exposes the server switcher", () => {
+  it("defaults to MCP and its read-only profile while exposing both connection methods", () => {
     const html = renderToStaticMarkup(
-      <McpConnectionDetails
+      <AgentConnectionDetails
         fullEndpoint="https://mail.example.com/mcp/full"
         fullEndpointId="mcp-full-endpoint"
+        instructionsUrl="https://mail.example.com/AGENTS.md"
+        instructionsUrlId="agents-md-url"
         readOnlyEndpoint="https://mail.example.com/mcp"
         readOnlyEndpointId="mcp-read-endpoint"
         user={user}
@@ -356,6 +361,8 @@ describe("mail shell", () => {
     expect(html).not.toContain("https://mail.example.com/mcp/full");
     expect(html).toContain("Read only");
     expect(html).toContain("Mail actions");
+    expect(html).toContain("AGENTS.md");
+    expect(html).not.toContain("https://mail.example.com/AGENTS.md");
     expect(html).toContain('role="tablist"');
     expect(html).toContain('data-state="active"');
     expect(html).toContain('data-state="inactive"');
@@ -366,6 +373,21 @@ describe("mail shell", () => {
     expect(html).toContain("live mailbox grants");
     expect(html).not.toContain("Community");
     expect(html).not.toContain("Pro");
+  });
+
+  it("offers deployment-local instructions without an embedded agent prompt", () => {
+    const html = renderToStaticMarkup(
+      <AgentInstructionsDetails
+        instructionsUrl="https://mail.example.com/AGENTS.md"
+        instructionsUrlId="agents-md-url"
+      />
+    );
+
+    expect(html).toContain("https://mail.example.com/AGENTS.md");
+    expect(html).toContain("Copy AGENTS.md URL");
+    expect(html).not.toContain("Ready-made prompt");
+    expect(html).not.toContain("Copy prompt");
+    expect(html).toContain("contains no account or mail data");
   });
 
   it("renders Compose as a non-modal responsive work surface", () => {

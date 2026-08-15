@@ -11,6 +11,7 @@ import pushMigration from "../../../migrations/0006_push_notifications.sql?raw";
 import userMailPreferencesMigration from "../../../migrations/0007_user_mail_preferences.sql?raw";
 import userOnboardingMigration from "../../../migrations/0008_user_onboarding.sql?raw";
 import loginEmailDomainMigration from "../../../migrations/0009_login_email_domain_isolation.sql?raw";
+import deviceAuthorizationMigration from "../../../migrations/0010_oauth_device_authorization.sql?raw";
 import resetSql from "../../../scripts/hqbase/reset-d1.sql?raw";
 import { buildSeedSql } from "../../../scripts/local-seed-fixture.mjs";
 import { migrationStatements } from "./migration-statements";
@@ -25,7 +26,8 @@ const migrations = [
   pushMigration,
   userMailPreferencesMigration,
   userOnboardingMigration,
-  loginEmailDomainMigration
+  loginEmailDomainMigration,
+  deviceAuthorizationMigration
 ];
 
 describe("local database reset", () => {
@@ -51,9 +53,12 @@ describe("local database reset", () => {
       `SELECT COUNT(*) AS count
        FROM sqlite_master
        WHERE type = 'table'
-         AND name IN ('oauthResource', 'oauthClientResource', 'oauthClientAssertion', 'user_onboarding')`
+         AND name IN (
+           'oauthResource', 'oauthClientResource', 'oauthClientAssertion', 'user_onboarding',
+           'deviceCode'
+         )`
     ).first<{ count: number }>();
-    expect(oauthTables?.count).toBe(4);
+    expect(oauthTables?.count).toBe(5);
   });
 });
 

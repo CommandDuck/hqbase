@@ -1,5 +1,6 @@
 PRAGMA foreign_keys = OFF;
 
+DROP TABLE IF EXISTS deviceCode;
 DROP TABLE IF EXISTS oauthClientAssertion;
 DROP TABLE IF EXISTS oauthClientResource;
 DROP TABLE IF EXISTS oauthResource;

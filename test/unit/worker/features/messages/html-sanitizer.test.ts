@@ -37,6 +37,20 @@ describe("email HTML sanitizer", () => {
     expect(result.html).not.toContain("onerror");
   });
 
+  it("can target the stable API path for inline images", () => {
+    const result = sanitizeMessageHtml({
+      allowRemoteImages: false,
+      attachments: [attachment],
+      origin: "https://mail.example.com",
+      html: '<img src="cid:signature-logo@example.com">',
+      inlineBasePath: "/api/v1/messages",
+      messageId: "msg-1",
+      subject: "Hello"
+    });
+
+    expect(result.html).toContain("https://mail.example.com/api/v1/messages/msg-1/inline/att-logo");
+  });
+
   it("removes active content, unsafe links, redirects, and CSS resource loads", () => {
     const result = sanitizeMessageHtml({
       allowRemoteImages: false,

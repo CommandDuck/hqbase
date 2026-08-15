@@ -2,7 +2,7 @@ import { apiDelete, apiGet, apiPatch, apiPost } from "@/lib/api-client";
 import type { Mailbox } from "./types";
 
 export async function listMailboxes(): Promise<Mailbox[]> {
-  return apiGet<Mailbox[]>("/api/mailboxes");
+  return apiGet<Mailbox[]>("/api/v1/mailboxes");
 }
 export async function addMailboxAddress(
   mailboxId: string,
