@@ -1,14 +1,9 @@
 import { env, SELF } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
 
-import initialMigration from "../../../migrations/0001_initial.sql?raw";
-import workspaceMigration from "../../../migrations/0002_workspace.sql?raw";
-import oauthResourcesMigration from "../../../migrations/0003_oauth_resources.sql?raw";
-import userOnboardingMigration from "../../../migrations/0008_user_onboarding.sql?raw";
-import deviceAuthorizationMigration from "../../../migrations/0010_oauth_device_authorization.sql?raw";
 import { createAuth } from "../../../worker/auth/auth";
 import { deviceCodeGrantType } from "../../../worker/auth/device-authorization";
-import { migrationStatements } from "./migration-statements";
+import { applyCurrentMigrations } from "./current-migrations";
 
 const origin = "https://hqbase.test";
 const apiResource = `${origin}/api/v1`;
@@ -20,15 +15,7 @@ let otherCookie = "";
 
 describe("OAuth Device Authorization Grant", () => {
   beforeAll(async () => {
-    for (const migration of [
-      initialMigration,
-      workspaceMigration,
-      oauthResourcesMigration,
-      userOnboardingMigration,
-      deviceAuthorizationMigration
-    ]) {
-      await applyMigration(migration);
-    }
+    await applyCurrentMigrations();
 
     const owner = await signUp("device-owner@login.example", "Device Owner");
     ownerCookie = owner.cookie;
@@ -315,10 +302,4 @@ function extractSessionCookie(response: Response): string {
   const match = serialized.match(/(?:^|,\s*)((?:__Secure-)?better-auth\.session_token=[^;,]+)/);
   if (!match?.[1]) throw new Error("Session cookie was not returned.");
   return match[1];
-}
-
-async function applyMigration(source: string): Promise<void> {
-  for (const statement of migrationStatements(source)) {
-    await env.DB.prepare(statement).run();
-  }
 }

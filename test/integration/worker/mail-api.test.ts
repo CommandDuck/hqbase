@@ -1,17 +1,9 @@
 import { env, SELF } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
 import mailApiOpenApi from "../../../api/hqbase-mail-api-v1.openapi.json";
-import initialMigration from "../../../migrations/0001_initial.sql?raw";
-import workspaceMigration from "../../../migrations/0002_workspace.sql?raw";
-import oauthResourcesMigration from "../../../migrations/0003_oauth_resources.sql?raw";
-import conversationMigration from "../../../migrations/0004_conversations.sql?raw";
-import threadRebuildMigration from "../../../migrations/0005_rebuild_threads.sql?raw";
-import userOnboardingMigration from "../../../migrations/0008_user_onboarding.sql?raw";
-import loginEmailDomainMigration from "../../../migrations/0009_login_email_domain_isolation.sql?raw";
-import deviceAuthorizationMigration from "../../../migrations/0010_oauth_device_authorization.sql?raw";
 import { createAuth } from "../../../worker/auth/auth";
+import { applyCurrentMigrations } from "./current-migrations";
 import { tokenRow } from "./mail-api-token-fixture";
-import { migrationStatements } from "./migration-statements";
 
 const origin = "https://hqbase.test";
 const apiResource = `${origin}/api/v1`;
@@ -26,18 +18,7 @@ let userId = "";
 
 describe("HQBase Mail API v1", () => {
   beforeAll(async () => {
-    for (const migration of [
-      initialMigration,
-      workspaceMigration,
-      oauthResourcesMigration,
-      conversationMigration,
-      threadRebuildMigration,
-      userOnboardingMigration,
-      loginEmailDomainMigration,
-      deviceAuthorizationMigration
-    ]) {
-      await applyMigration(migration);
-    }
+    await applyCurrentMigrations();
 
     const auth = createAuth(env, new Request(`${origin}/api/auth/sign-up/email`));
     const signUp = await auth.handler(
@@ -438,10 +419,4 @@ function extractSessionCookie(response: Response): string {
   const match = serialized.match(/(?:^|,\s*)((?:__Secure-)?better-auth\.session_token=[^;,]+)/);
   if (!match?.[1]) throw new Error("Session cookie was not returned.");
   return match[1];
-}
-
-async function applyMigration(source: string): Promise<void> {
-  for (const statement of migrationStatements(source)) {
-    await env.DB.prepare(statement).run();
-  }
 }
