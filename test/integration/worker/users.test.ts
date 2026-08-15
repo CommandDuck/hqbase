@@ -1,36 +1,15 @@
 import { env, SELF } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
 
-import initialMigration from "../../../migrations/0001_initial.sql?raw";
-import workspaceMigration from "../../../migrations/0002_workspace.sql?raw";
-import oauthResourcesMigration from "../../../migrations/0003_oauth_resources.sql?raw";
-import conversationMigration from "../../../migrations/0004_conversations.sql?raw";
-import threadRebuildMigration from "../../../migrations/0005_rebuild_threads.sql?raw";
-import pushMigration from "../../../migrations/0006_push_notifications.sql?raw";
-import userMailPreferencesMigration from "../../../migrations/0007_user_mail_preferences.sql?raw";
-import userOnboardingMigration from "../../../migrations/0008_user_onboarding.sql?raw";
-import loginEmailDomainMigration from "../../../migrations/0009_login_email_domain_isolation.sql?raw";
 import { createAuth } from "../../../worker/auth/auth";
-import { migrationStatements } from "./migration-statements";
+import { applyCurrentMigrations } from "./current-migrations";
 
 const origin = "https://hqbase.test";
 let ownerCookie = "";
 
 describe("workspace user onboarding", () => {
   beforeAll(async () => {
-    for (const migration of [
-      initialMigration,
-      workspaceMigration,
-      oauthResourcesMigration,
-      conversationMigration,
-      threadRebuildMigration,
-      pushMigration,
-      userMailPreferencesMigration,
-      userOnboardingMigration,
-      loginEmailDomainMigration
-    ]) {
-      await applyMigration(migration);
-    }
+    await applyCurrentMigrations();
 
     const owner = await createAuth(env, new Request(`${origin}/api/auth/sign-up/email`)).handler(
       new Request(`${origin}/api/auth/sign-up/email`, {
@@ -313,10 +292,4 @@ function extractSessionCookie(response: Response): string {
   const match = serialized.match(/(?:^|,\s*)((?:__Secure-)?better-auth\.session_token=[^;,]+)/);
   if (!match?.[1]) throw new Error("Session cookie was not returned.");
   return match[1];
-}
-
-async function applyMigration(source: string): Promise<void> {
-  for (const statement of migrationStatements(source)) {
-    await env.DB.prepare(statement).run();
-  }
 }

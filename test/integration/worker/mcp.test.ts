@@ -1,16 +1,8 @@
 import { env, SELF } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
 
-import initialMigration from "../../../migrations/0001_initial.sql?raw";
-import workspaceMigration from "../../../migrations/0002_workspace.sql?raw";
-import oauthResourcesMigration from "../../../migrations/0003_oauth_resources.sql?raw";
-import conversationMigration from "../../../migrations/0004_conversations.sql?raw";
-import threadRebuildMigration from "../../../migrations/0005_rebuild_threads.sql?raw";
-import userOnboardingMigration from "../../../migrations/0008_user_onboarding.sql?raw";
-import loginEmailDomainMigration from "../../../migrations/0009_login_email_domain_isolation.sql?raw";
-import deviceAuthorizationMigration from "../../../migrations/0010_oauth_device_authorization.sql?raw";
 import { hashOAuthToken } from "../../../worker/auth/oauth-token";
-import { migrationStatements } from "./migration-statements";
+import { applyCurrentMigrations } from "./current-migrations";
 
 const origin = "https://hqbase.test";
 const userId = "usr_mcp_member";
@@ -30,18 +22,7 @@ const readToolNames = [
 
 describe("HQBase MCP server", () => {
   beforeAll(async () => {
-    for (const migration of [
-      initialMigration,
-      workspaceMigration,
-      oauthResourcesMigration,
-      conversationMigration,
-      threadRebuildMigration,
-      userOnboardingMigration,
-      loginEmailDomainMigration,
-      deviceAuthorizationMigration
-    ]) {
-      await applyMigration(migration);
-    }
+    await applyCurrentMigrations();
     const now = new Date();
     const storedReadToken = await hashOAuthToken("mcp-hqbase-read-token");
     const storedReadProfileFullToken = await hashOAuthToken("mcp-hqbase-read-profile-full-token");
@@ -510,10 +491,4 @@ function mcpRequest(body: unknown, accessToken?: string, endpoint = "/mcp"): Pro
     headers,
     method: "POST"
   });
-}
-
-async function applyMigration(source: string): Promise<void> {
-  for (const statement of migrationStatements(source)) {
-    await env.DB.prepare(statement).run();
-  }
 }

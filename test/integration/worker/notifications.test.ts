@@ -1,14 +1,6 @@
 import { env, SELF } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
 
-import initialMigration from "../../../migrations/0001_initial.sql?raw";
-import workspaceMigration from "../../../migrations/0002_workspace.sql?raw";
-import oauthResourcesMigration from "../../../migrations/0003_oauth_resources.sql?raw";
-import conversationMigration from "../../../migrations/0004_conversations.sql?raw";
-import threadRebuildMigration from "../../../migrations/0005_rebuild_threads.sql?raw";
-import pushMigration from "../../../migrations/0006_push_notifications.sql?raw";
-import userOnboardingMigration from "../../../migrations/0008_user_onboarding.sql?raw";
-import loginEmailDomainMigration from "../../../migrations/0009_login_email_domain_isolation.sql?raw";
 import { createAuth } from "../../../worker/auth/auth";
 import {
   countUnreadMessages,
@@ -16,22 +8,11 @@ import {
   removePushSubscription,
   savePushSubscription
 } from "../../../worker/features/notifications/queries";
-import { migrationStatements } from "./migration-statements";
+import { applyCurrentMigrations } from "./current-migrations";
 
 describe("notification persistence", () => {
   beforeAll(async () => {
-    for (const migration of [
-      initialMigration,
-      workspaceMigration,
-      oauthResourcesMigration,
-      conversationMigration,
-      threadRebuildMigration,
-      pushMigration,
-      userOnboardingMigration,
-      loginEmailDomainMigration
-    ]) {
-      await applyMigration(migration);
-    }
+    await applyCurrentMigrations();
     const now = "2026-07-29T12:00:00.000Z";
     await env.DB.batch([
       env.DB.prepare(
@@ -212,12 +193,6 @@ async function insertMessage(
   )
     .bind(id, mailboxId, folder, now, readAt, now, now)
     .run();
-}
-
-async function applyMigration(source: string): Promise<void> {
-  for (const statement of migrationStatements(source)) {
-    await env.DB.prepare(statement).run();
-  }
 }
 
 function extractSessionCookie(response: Response): string {
