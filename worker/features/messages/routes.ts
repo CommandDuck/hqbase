@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { isVersionedMailApiRequest, requireMailApiContext } from "../../auth/mail-api";
-import { accessibleMailboxIds, requireMailboxAccess } from "../../auth/mailbox-access";
+import { accessibleMailboxScope, requireMailboxAccess } from "../../auth/mailbox-access";
 import type { HonoApp } from "../../lib/env";
 import { AppError } from "../../lib/errors";
 
@@ -28,13 +28,13 @@ const actions: readonly MessageAction[] = ["read", "unread", "star", "unstar", "
 
 messageRoutes.get("/", async (c) => {
   const auth = await requireMailApiContext(c.env, c.req.raw, "mail:read");
-  const mailboxIds = await accessibleMailboxIds(c.env.DB, auth.user.id, auth.user.role, "read");
+  const scope = await accessibleMailboxScope(c.env.DB, auth.user.id, auth.user.role, "read");
   return c.json(
     await listMessages(c.env.DB, {
       folder: c.req.query("folder"),
       mailboxId: c.req.query("mailboxId"),
       search: c.req.query("search"),
-      mailboxIds
+      scope
     })
   );
 });
@@ -46,10 +46,8 @@ messageRoutes.get("/:id/thread", async (c) => {
     throw new AppError("MESSAGE_NOT_FOUND", "Message not found.", 404);
   }
   await requireMailboxAccess(c.env.DB, auth.user.id, auth.user.role, message.mailboxId, "read");
-  const mailboxIds = await accessibleMailboxIds(c.env.DB, auth.user.id, auth.user.role, "read");
-  return c.json(
-    (await listThreadMessages(c.env.DB, message.threadId, mailboxIds)).map(publicMessage)
-  );
+  const scope = await accessibleMailboxScope(c.env.DB, auth.user.id, auth.user.role, "read");
+  return c.json((await listThreadMessages(c.env.DB, message.threadId, scope)).map(publicMessage));
 });
 
 messageRoutes.get("/:id", async (c) => {
