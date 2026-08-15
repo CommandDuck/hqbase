@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.1.0
+
+- Add a stable, versioned Mail API for mailboxes, messages, conversations, attachments, drafts,
+  sending, and replies. API clients can use audience-bound OAuth bearer tokens, while the web app
+  uses the same `/api/v1` routes with its existing session cookie.
+- Publish deployment-local `AGENTS.md`, OpenAPI 3.1, and Postman artifacts so people and AI agents
+  can discover, inspect, and test each installation's API without an HQBase-specific SDK.
+- Add OAuth Device Authorization for agents and command-line clients, including normal-browser
+  approval, short-lived single-use codes, scoped access, and persistent D1-backed verification
+  rate limits.
+- Expand **Connect AI agent** to offer both the existing MCP connection and the deployment's
+  `AGENTS.md` instructions, while keeping REST and MCP tokens isolated by audience.
+- Add deterministic local D1 reset and seed commands for a ready-to-use development workspace.
+- Improve Windows installation and release-script compatibility, protect temporary secret files,
+  route Worker-owned paths ahead of the SPA fallback, and exercise the quality gate on Windows CI.
+
 ## 1.0.1
 
 - Preserve invitation password setup links so `/set-password?token=...` reaches the password form
