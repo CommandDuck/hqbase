@@ -1015,6 +1015,7 @@
     "/api/v1/conversations/{id}/{action}": {
       "post": {
         "summary": "Update conversation state",
+        "description": "Applies the action to every accessible message in the conversation identified by the message `{id}`.",
         "security": [
           {
             "oauth2": ["mail:write"]
@@ -1091,6 +1092,7 @@
           {
             "in": "path",
             "name": "id",
+            "description": "A message id belonging to the conversation — use `ConversationSummary.id` (the conversation's latest message). The conversation is derived from that message and mailbox access is checked against its mailbox. This is not a thread id; a thread id resolves to no mailbox and is rejected with 403 MAILBOX_FORBIDDEN.",
             "required": true,
             "schema": {
               "type": "string",
