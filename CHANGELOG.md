@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.1.1
 
 - Publish the deployment-local Mail API instructions as a valid Agent Skill at
   `/skills/hqbase-mail/SKILL.md`, add Copy and Download Skill actions, and redirect the earlier
