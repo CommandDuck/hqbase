@@ -13,6 +13,7 @@ import userOnboardingMigration from "../../../migrations/0008_user_onboarding.sq
 import loginEmailDomainMigration from "../../../migrations/0009_login_email_domain_isolation.sql?raw";
 import deviceAuthorizationMigration from "../../../migrations/0010_oauth_device_authorization.sql?raw";
 import latestPasswordResetTokenMigration from "../../../migrations/0011_latest_password_reset_token.sql?raw";
+import messageActivityIndexMigration from "../../../migrations/0012_message_activity_index.sql?raw";
 import resetSql from "../../../scripts/hqbase/reset-d1.sql?raw";
 import { buildSeedSql } from "../../../scripts/local-seed-fixture.mjs";
 import { migrationStatements } from "./migration-statements";
@@ -29,7 +30,8 @@ const migrations = [
   userOnboardingMigration,
   loginEmailDomainMigration,
   deviceAuthorizationMigration,
-  latestPasswordResetTokenMigration
+  latestPasswordResetTokenMigration,
+  messageActivityIndexMigration
 ];
 
 describe("local database reset", () => {
@@ -67,6 +69,20 @@ describe("local database reset", () => {
        WHERE type = 'trigger' AND name = 'verification_latest_password_reset_token'`
     ).first<{ name: string }>();
     expect(resetTokenTrigger?.name).toBe("verification_latest_password_reset_token");
+
+    const activityIndexes = await env.DB.prepare(
+      `SELECT name FROM sqlite_master
+       WHERE type = 'index'
+         AND name IN (
+           'messages_activity_idx', 'messages_mailbox_activity_idx', 'messages_folder_activity_idx'
+         )
+       ORDER BY name`
+    ).all<{ name: string }>();
+    expect(activityIndexes.results.map((row) => row.name)).toEqual([
+      "messages_activity_idx",
+      "messages_folder_activity_idx",
+      "messages_mailbox_activity_idx"
+    ]);
   });
 });
 

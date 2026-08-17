@@ -9,13 +9,15 @@ import { sanitizeMessageHtml } from "./html-sanitizer";
 import { isSafeInlineImage, normalizedContentType } from "./inline-media";
 import { publicMessage } from "./public-message";
 import {
+  defaultMessageLimit,
   findAttachment,
   getAttachmentMailboxId,
   getMessageDetail,
   getMessageHtmlKey,
   getMessageMailboxId,
-  listMessages,
+  listMessagePage,
   listThreadMessages,
+  maxMessageLimit,
   updateMessageAction
 } from "./queries";
 import { isRemoteMediaTrusted, trustRemoteMediaSender } from "./remote-media";
@@ -29,14 +31,21 @@ const actions: readonly MessageAction[] = ["read", "unread", "star", "unstar", "
 messageRoutes.get("/", async (c) => {
   const auth = await requireMailApiContext(c.env, c.req.raw, "mail:read");
   const mailboxIds = await accessibleMailboxIds(c.env.DB, auth.user.id, auth.user.role, "read");
-  return c.json(
-    await listMessages(c.env.DB, {
-      folder: c.req.query("folder"),
-      mailboxId: c.req.query("mailboxId"),
-      search: c.req.query("search"),
-      mailboxIds
-    })
-  );
+  const limit = parseMessageLimit(c.req.query("limit"));
+  const page = await listMessagePage(c.env.DB, {
+    cursor: c.req.query("cursor"),
+    folder: c.req.query("folder"),
+    limit,
+    mailboxId: c.req.query("mailboxId"),
+    search: c.req.query("search"),
+    mailboxIds
+  });
+
+  const response = c.json(page.messages);
+  if (page.nextCursor) {
+    response.headers.set("link", `<${nextMessagePageUrl(c.req.url, page.nextCursor)}>; rel="next"`);
+  }
+  return response;
 });
 
 messageRoutes.get("/:id/thread", async (c) => {
@@ -193,3 +202,32 @@ attachmentRoutes.get("/:id", async (c) => {
   headers.set("content-disposition", `attachment; filename="${attachment.filename}"`);
   return new Response(object.body, { headers });
 });
+
+/** Returns the requested page size, or throws INVALID_LIMIT when the value is not 1 to 100. */
+function parseMessageLimit(value: string | undefined): number {
+  if (value === undefined) {
+    return defaultMessageLimit;
+  }
+  const limit = Number(value);
+  if (!/^\d+$/u.test(value) || !Number.isInteger(limit) || limit < 1 || limit > maxMessageLimit) {
+    throw new AppError(
+      "INVALID_LIMIT",
+      `Limit must be an integer from 1 to ${maxMessageLimit}.`,
+      400
+    );
+  }
+  return limit;
+}
+
+/** Keeps mailboxId, folder, search, and limit, and replaces the cursor. */
+function nextMessagePageUrl(requestUrl: string, cursor: string): string {
+  const url = new URL(requestUrl);
+  const preserved = new URLSearchParams();
+  for (const name of ["mailboxId", "folder", "search", "limit"]) {
+    const value = url.searchParams.get(name);
+    if (value !== null) preserved.set(name, value);
+  }
+  preserved.set("cursor", cursor);
+  url.search = preserved.toString();
+  return url.toString();
+}

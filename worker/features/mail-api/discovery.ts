@@ -133,7 +133,8 @@ The method index is an orientation aid. Consult ${openApiUrl} for exact paramete
 ## Operating rules
 
 - Use \`Content-Type: application/json\` for JSON requests and \`multipart/form-data\` for draft attachment uploads.
-- Treat conversation cursors as opaque strings and return them unchanged.
+- Treat message and conversation cursors as opaque strings and return them unchanged. Do not construct or edit a cursor.
+- \`GET ${apiBase}/messages\` returns one page. Follow the \`Link: <url>; rel="next"\` response header for the next page. No \`Link\` header means the last page.
 - Ignore response fields you do not recognize.
 - Do not log access tokens, refresh tokens, message bodies, or attachments.
 - Do not log device codes or user codes, and do not paste them into unrelated chats or tools.
