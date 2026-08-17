@@ -6,8 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 type OAuthClient = {
   client_id?: string;
   client_name?: string;
+  client_uri?: string;
   name?: string;
-  uri?: string;
 };
 
 const scopeDescriptions: Record<string, string> = {
@@ -73,7 +73,7 @@ export function OAuthConsentPage(): React.ReactElement {
   }
 
   const clientName = client?.client_name ?? client?.name ?? "OAuth client";
-  const clientUri = client?.uri;
+  const clientUri = client?.client_uri;
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-4 py-12">
       <Card className="w-full max-w-md bg-card/70 shadow-none">
