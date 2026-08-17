@@ -127,7 +127,16 @@
         ],
         "responses": {
           "200": {
-            "description": "Messages",
+            "description": "One page of messages, newest activity first.",
+            "headers": {
+              "Link": {
+                "required": false,
+                "description": "RFC 8288 link to the next page, as `<url>; rel=\"next\"`. The header is absent on the last page.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -140,7 +149,7 @@
             }
           },
           "400": {
-            "description": "Invalid request",
+            "description": "Invalid request. `INVALID_LIMIT` when limit is not an integer from 1 to 100. `INVALID_CURSOR` when the cursor is malformed or is not a message cursor.",
             "content": {
               "application/json": {
                 "schema": {
@@ -222,6 +231,28 @@
               "maxLength": 200
             },
             "description": "Search subject, sender, recipient, and message text."
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 100
+            },
+            "description": "Maximum number of messages in the page."
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 512
+            },
+            "description": "Opaque cursor from the previous page. Read it from the Link header and send it unchanged."
           }
         ]
       }

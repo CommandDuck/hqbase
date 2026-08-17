@@ -179,6 +179,18 @@
                   "value": "",
                   "disabled": true,
                   "description": "Search subject, sender, recipient, and message text."
+                },
+                {
+                  "key": "limit",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Maximum number of messages in the page."
+                },
+                {
+                  "key": "cursor",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Opaque cursor from the previous page. Read it from the Link header and send it unchanged."
                 }
               ]
             },

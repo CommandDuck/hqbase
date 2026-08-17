@@ -2,6 +2,7 @@ import { newId, nowIso } from "../../db/client";
 import { AppError } from "../../lib/errors";
 import type { MessageAction } from "./actions";
 import { buildMessageActionPatch } from "./actions";
+import { decodeKeysetCursor, encodeKeysetCursor, type KeysetCursor } from "./keyset-cursor";
 import type {
   AttachmentRow,
   InsertAttachmentInput,
@@ -17,13 +18,34 @@ const messageSelect = `SELECT messages.*,
    WHERE id = messages.delivered_to_address_id) AS delivered_to_address
   FROM messages`;
 
+/** Message cursors are versioned separately from conversation cursors. */
+const messageCursorVersion = "m1";
+const messageActivityAt = "COALESCE(received_at, sent_at, created_at)";
+
+export const defaultMessageLimit = 100;
+export const maxMessageLimit = 100;
+
 export type ListMessageFilters = {
+  cursor?: string | undefined;
   folder?: string | undefined;
   limit?: number | undefined;
   mailboxId?: string | undefined;
   search?: string | undefined;
   mailboxIds?: string[] | undefined;
 };
+
+export type MessagePage = {
+  messages: MessageSummary[];
+  nextCursor: string | null;
+};
+
+export function decodeMessageCursor(value: string): KeysetCursor {
+  const cursor = decodeKeysetCursor(messageCursorVersion, value);
+  if (!cursor) {
+    throw new AppError("INVALID_CURSOR", "Message cursor is invalid.", 400);
+  }
+  return cursor;
+}
 
 export async function insertMessage(
   db: D1Database,
@@ -118,11 +140,19 @@ export async function listMessages(
   db: D1Database,
   filters: ListMessageFilters
 ): Promise<MessageSummary[]> {
+  return (await listMessagePage(db, filters)).messages;
+}
+
+export async function listMessagePage(
+  db: D1Database,
+  filters: ListMessageFilters
+): Promise<MessagePage> {
   const where: string[] = [];
   const params: Array<string | number> = [];
 
+  // The mailbox-access filter is applied first and is never relaxed by a cursor.
   if (filters.mailboxIds) {
-    if (filters.mailboxIds.length === 0) return [];
+    if (filters.mailboxIds.length === 0) return { messages: [], nextCursor: null };
     where.push(`mailbox_id IN (${filters.mailboxIds.map(() => "?").join(", ")})`);
     params.push(...filters.mailboxIds);
   }
@@ -143,17 +173,39 @@ export async function listMessages(
     params.push(like, like, like, like, like);
   }
 
-  const limit = Math.min(Math.max(filters.limit ?? 100, 1), 100);
+  const cursor = filters.cursor ? decodeMessageCursor(filters.cursor) : null;
+  if (cursor) {
+    where.push(`(${messageActivityAt} < ? OR (${messageActivityAt} = ? AND messages.id < ?))`);
+    params.push(cursor.activityAt, cursor.activityAt, cursor.id);
+  }
+
+  const limit = Math.min(Math.max(filters.limit ?? defaultMessageLimit, 1), maxMessageLimit);
+  // Read one extra row to learn whether another page exists.
   const sql = `${messageSelect} ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
-    ORDER BY COALESCE(received_at, sent_at, created_at) DESC LIMIT ?`;
-  params.push(limit);
+    ORDER BY ${messageActivityAt} DESC, messages.id DESC LIMIT ?`;
+  params.push(limit + 1);
 
   const result = await db
     .prepare(sql)
     .bind(...params)
     .all<MessageRow>();
 
-  return result.results.map(mapMessageSummary);
+  const pageRows = result.results.slice(0, limit);
+  const finalRow = pageRows.at(-1);
+  return {
+    messages: pageRows.map(mapMessageSummary),
+    nextCursor:
+      result.results.length > limit && finalRow
+        ? encodeKeysetCursor(messageCursorVersion, {
+            activityAt: messageActivityOf(finalRow),
+            id: finalRow.id
+          })
+        : null
+  };
+}
+
+function messageActivityOf(row: MessageRow): string {
+  return row.received_at ?? row.sent_at ?? row.created_at;
 }
 
 export async function getMessageDetail(db: D1Database, id: string): Promise<MessageDetail | null> {
