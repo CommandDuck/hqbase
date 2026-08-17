@@ -42,6 +42,13 @@ const keysetSql = `SELECT messages.* FROM messages
 const singleMailboxSql = `SELECT messages.* FROM messages
   WHERE mailbox_id IN ('mbx_index', 'mbx_other') AND mailbox_id = 'mbx_index'
   ORDER BY ${activityAt} DESC, messages.id DESC LIMIT 101`;
+// The production default: GET /messages with no folder filter — the route ALWAYS adds
+// mailbox_id IN (...) for the readable set. Reviewer-reproduced shape: with two readable
+// mailboxes and no folder, the planner kept messages_mailbox_idx + a temp B-tree until
+// PRAGMA optimize gave it statistics for the new ordering indexes.
+const broadAccessSql = `SELECT messages.* FROM messages
+  WHERE mailbox_id IN ('mbx_index', 'mbx_other')
+  ORDER BY ${activityAt} DESC, messages.id DESC LIMIT 101`;
 
 describe("message activity index migration", () => {
   beforeAll(async () => {
@@ -51,9 +58,10 @@ describe("message activity index migration", () => {
     const stamp = "2025-01-01T00:00:00.000Z";
     await env.DB.prepare(
       `INSERT INTO mailboxes (id, address, display_name, is_active, created_at, updated_at)
-       VALUES ('mbx_index', 'index@example.com', 'Index', 1, ?, ?)`
+       VALUES ('mbx_index', 'index@example.com', 'Index', 1, ?, ?),
+              ('mbx_other', 'other@example.com', 'Other', 1, ?, ?)`
     )
-      .bind(stamp, stamp)
+      .bind(stamp, stamp, stamp, stamp)
       .run();
     await env.DB.prepare(
       `INSERT INTO threads (id, subject_normalized, last_message_at, created_at, updated_at)
@@ -61,17 +69,20 @@ describe("message activity index migration", () => {
     )
       .bind(stamp, stamp, stamp)
       .run();
+    // Both readable mailboxes are populated, so the broad-access shape (no folder,
+    // mailbox_id IN (...)) is a genuine multi-mailbox merge, not a single-source scan.
     await env.DB.batch(
-      Array.from({ length: 200 }, (_, index) =>
+      Array.from({ length: 400 }, (_, index) =>
         env.DB.prepare(
           `INSERT INTO messages
            (id, thread_id, mailbox_id, direction, folder, from_address, to_json, cc_json, bcc_json,
             subject, snippet, text_body, message_id, dedupe_key, in_reply_to, references_json,
             received_at, sent_at, read_at, has_attachments, created_at, updated_at)
-           VALUES (?, 'thr_index', 'mbx_index', 'inbound', 'inbox', 'sender@example.net', '[]',
+           VALUES (?, 'thr_index', ?, 'inbound', 'inbox', 'sender@example.net', '[]',
                    '[]', '[]', '', '', '', NULL, ?, NULL, '[]', ?, NULL, NULL, 0, ?, ?)`
         ).bind(
           `msg_idx_${String(index).padStart(4, "0")}`,
+          index % 2 === 0 ? "mbx_index" : "mbx_other",
           `idx-dedupe-${index}`,
           `2025-01-01T00:00:${String(index % 60).padStart(2, "0")}.000Z`,
           stamp,
@@ -85,10 +96,10 @@ describe("message activity index migration", () => {
     expect(await queryPlan(listSql)).toContain("USE TEMP B-TREE FOR ORDER BY");
   });
 
-  it("serves the list, keyset, and single-mailbox orders from an index after the migration", async () => {
+  it("serves the list, keyset, single-mailbox, and broad-access orders from an index after the migration", async () => {
     await applyMigration(messageActivityIndexMigration);
 
-    for (const sql of [listSql, keysetSql, singleMailboxSql]) {
+    for (const sql of [listSql, keysetSql, singleMailboxSql, broadAccessSql]) {
       expect(await queryPlan(sql), sql).not.toContain("USE TEMP B-TREE FOR ORDER BY");
     }
   });
@@ -100,7 +111,7 @@ describe("message activity index migration", () => {
     const rows = await env.DB.prepare("SELECT COUNT(*) AS count FROM messages").first<{
       count: number;
     }>();
-    expect(rows?.count).toBe(200);
+    expect(rows?.count).toBe(400);
 
     const indexes = await env.DB.prepare(
       `SELECT name FROM sqlite_master WHERE type = 'index' AND name LIKE 'messages_%activity_idx'
