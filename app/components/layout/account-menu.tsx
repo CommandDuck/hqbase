@@ -1,4 +1,4 @@
-import * as React from "react";
+import type * as React from "react";
 import { PiCaretDown, PiSignOut } from "react-icons/pi";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
