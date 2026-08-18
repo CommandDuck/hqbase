@@ -72,8 +72,8 @@ Before you run the optional seed command, add these values to `.dev.vars`:
 - `BETTER_AUTH_SECRET`
 - `HQBASE_LOCAL_SEED_PASSWORD` with 8 to 128 characters
 
-
-Cloudflare OAuth. Open `http://127.0.0.1:5173/` and sign in as `owner@hqbase.test` with that
+The seed command writes only to local D1 and does not contact Cloudflare OAuth. Open
+`http://127.0.0.1:5173/` and sign in as `owner@hqbase.test` with that
 password. Vite serves the frontend with live reload on port 5173 and proxies API requests to the
 Wrangler Worker on port 8787.
 

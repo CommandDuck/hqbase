@@ -207,7 +207,7 @@ export function InboxPage({
             messages={thread}
             selectedId={readerSelectedId}
             showBack
-            onAction={(action) => void handleAction(action)}
+            onAction={handleAction}
             onBack={() => onMessageRouteChange(activeFolder, null)}
             {...(onDraftsChange ? { onDraftsChange } : {})}
             onRefresh={async () => {

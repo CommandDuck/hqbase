@@ -118,6 +118,8 @@ export function AppShell(props: AppShellProps): React.ReactElement {
 
 function ShellContent({
   activeFolder,
+  activeSettingsTab,
+  canManage,
   children,
   draftCount,
   mailboxId,
@@ -133,6 +135,7 @@ function ShellContent({
   onMailboxChange,
   onOpenUpdates,
   onSearchChange,
+  onSettingsTabChange,
   onSignedOut,
   sidebarCollapsed,
   onToggleSidebar
@@ -145,6 +148,8 @@ function ShellContent({
     <div className="flex h-full min-w-0 flex-1 flex-col">
       <TopBar
         activeFolder={activeFolder}
+        activeSettingsTab={activeSettingsTab}
+        canManage={canManage}
         draftCount={draftCount}
         mailboxId={mailboxId}
         mailboxes={mailboxes}
@@ -156,6 +161,7 @@ function ShellContent({
         onFolderChange={onFolderChange}
         onMailboxChange={onMailboxChange}
         onSearchChange={onSearchChange}
+        onSettingsTabChange={onSettingsTabChange}
         onSignedOut={onSignedOut}
         onToggleSidebar={onToggleSidebar}
       />

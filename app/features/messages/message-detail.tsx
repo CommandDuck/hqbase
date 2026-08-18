@@ -21,12 +21,14 @@ type MessageDetailProps = {
   messages: MessageDetailType[];
   selectedId: string | null;
   showBack?: boolean;
-  onAction: (action: "read" | "unread" | "star" | "unstar" | "archive" | "trash") => void;
+  onAction: (action: MessageAction) => Promise<void> | void;
   onBack: () => void;
   onDraftsChange?: () => void;
   onRefresh: () => Promise<void> | void;
   onSent: () => void;
 };
+
+type MessageAction = "read" | "unread" | "star" | "unstar" | "archive" | "trash";
 
 type ThreadComposeMode = Extract<ComposeMode, "reply" | "forward">;
 
@@ -69,6 +71,15 @@ export function MessageDetail({
 
   const isStarred = messages.some((message) => message.starredAt !== null);
 
+  async function applyAction(action: MessageAction, successMessage?: string): Promise<void> {
+    try {
+      await onAction(action);
+      if (successMessage) toast.success(successMessage);
+    } catch {
+      toast.error("The conversation could not be updated. Try again.");
+    }
+  }
+
   return (
     <article className="flex h-full flex-col bg-reader">
       <div className="shrink-0 border-b border-divider bg-toolbar px-3 sm:px-5">
@@ -93,8 +104,10 @@ export function MessageDetail({
               label={isUnread ? "Mark conversation read" : "Mark conversation unread"}
               onClick={() => {
                 const action = isUnread ? "read" : "unread";
-                onAction(action);
-                toast.success(action === "read" ? "Marked as read." : "Marked as unread.");
+                void applyAction(
+                  action,
+                  action === "read" ? "Marked as read." : "Marked as unread."
+                );
               }}
             >
               <PiEnvelopeOpen aria-hidden="true" className="pointer-events-none" />
@@ -103,7 +116,7 @@ export function MessageDetail({
               active={isStarred}
               activeClassName="text-star [@media(hover:hover)]:hover:text-star"
               label={isStarred ? "Unstar conversation" : "Star conversation"}
-              onClick={() => onAction(isStarred ? "unstar" : "star")}
+              onClick={() => void applyAction(isStarred ? "unstar" : "star")}
             >
               <PiStar
                 aria-hidden="true"
@@ -112,19 +125,13 @@ export function MessageDetail({
             </IconButton>
             <IconButton
               label="Archive conversation"
-              onClick={() => {
-                onAction("archive");
-                toast.success("Conversation archived.");
-              }}
+              onClick={() => void applyAction("archive", "Conversation archived.")}
             >
               <PiArchive aria-hidden="true" className="pointer-events-none" />
             </IconButton>
             <IconButton
               label="Trash conversation"
-              onClick={() => {
-                onAction("trash");
-                toast.success("Conversation moved to Trash.");
-              }}
+              onClick={() => void applyAction("trash", "Conversation moved to Trash.")}
             >
               <PiTrash aria-hidden="true" className="pointer-events-none" />
             </IconButton>

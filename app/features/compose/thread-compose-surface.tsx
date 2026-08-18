@@ -78,8 +78,7 @@ export function ThreadComposeSurface({
   );
 
   if (isDesktop) {
-    if (typeof document === "undefined") return desktop;
-    return createPortal(desktop, document.body);
+    return desktop;
   }
 
   const overlay = (
@@ -113,7 +112,7 @@ export function ThreadComposeSurface({
           </p>
         </div>
         <Button
-          aria-label="PiPaperPlaneTilt message"
+          aria-label="Send message"
           className="size-10 min-h-10 min-w-10 lg:hidden"
           disabled={sendDisabled}
           form={formId}

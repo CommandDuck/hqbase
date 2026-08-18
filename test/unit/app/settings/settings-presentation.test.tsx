@@ -7,6 +7,7 @@ import { formatMailboxAccessSummary } from "@/features/mailbox-access/mailbox-ac
 import { MailboxSettings } from "@/features/mailboxes/mailbox-settings";
 import { MailboxSelectionBar } from "@/features/mailboxes/mailbox-table";
 import type { Mailbox } from "@/features/mailboxes/types";
+import { McpSettings } from "@/features/mcp/mcp-settings";
 import { SettingsPage } from "@/features/settings/settings-page";
 import { RoleGuidanceCopy } from "@/features/users/role-guidance";
 import type { WorkspaceUser } from "@/features/users/types";
@@ -80,6 +81,26 @@ const notifications = {
 };
 
 describe("settings presentation", () => {
+  it("offers MCP and the deployment-local Agent Skill on the MCP page", () => {
+    const html = renderToStaticMarkup(
+      <McpSettings
+        user={{
+          defaultFromMailboxId: null,
+          email: "owner@example.com",
+          id: "user-1",
+          name: "Owner",
+          passwordSetupRequired: false,
+          role: "owner"
+        }}
+      />
+    );
+
+    expect(html).toContain("Connecting as");
+    expect(html).toContain("MCP");
+    expect(html).toContain("Agent Skill");
+    expect(html).not.toContain("Connect AI agent");
+  });
+
   it("renders mailbox content at the top level and opens creation from a dialog trigger", () => {
     const html = renderToStaticMarkup(
       <MailboxSettings

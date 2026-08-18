@@ -37,8 +37,12 @@ const composeForm = readFileSync(
   new URL("../../../../app/features/compose/compose-form.tsx", import.meta.url),
   "utf8"
 );
-const mcpConnectionDialog = readFileSync(
+const mcpConnectionDetails = readFileSync(
   new URL("../../../../app/features/mcp/connection-dialog.tsx", import.meta.url),
+  "utf8"
+);
+const mcpSettings = readFileSync(
+  new URL("../../../../app/features/mcp/mcp-settings.tsx", import.meta.url),
   "utf8"
 );
 const threadComposeSurface = readFileSync(
@@ -67,23 +71,23 @@ describe("mobile application shell", () => {
     expect(composeForm).toContain("pb-[max(1rem,env(safe-area-inset-bottom))]");
   });
 
-  it("keeps the MCP dialog inside the dynamic viewport and device safe areas", () => {
-    expect(mcpConnectionDialog).toContain("100dvh");
-    expect(mcpConnectionDialog).toContain("safe-area-inset-top");
-    expect(mcpConnectionDialog).toContain("safe-area-inset-bottom");
-    expect(mcpConnectionDialog).toContain("overflow-y-auto");
-    expect(mcpConnectionDialog).toContain("text-base sm:text-xs");
-    expect(mcpConnectionDialog).toContain('value="read-only"');
-    expect(mcpConnectionDialog).toContain('value="mail-actions"');
-    expect(mcpConnectionDialog).toContain("/mcp/full");
+  it("keeps MCP and Agent Skill connection details in Settings", () => {
+    expect(mcpConnectionDetails).toContain("text-base sm:text-xs");
+    expect(mcpConnectionDetails).toContain('value="read-only"');
+    expect(mcpConnectionDetails).toContain('value="mail-actions"');
+    expect(mcpSettings).toContain("/mcp/full");
+    expect(mcpSettings).toContain("/skills/hqbase-mail/SKILL.md");
   });
 
-  it("keeps Connect MCP in settings instead of standalone navigation", () => {
+  it("keeps agent connection in MCP settings instead of standalone navigation", () => {
     expect(settingsPage).toContain("McpSettings");
     expect(settingsPage).toContain('"mcp"');
     expect(appShell).not.toContain("Connect MCP");
+    expect(appShell).not.toContain("Connect AI agent");
     expect(mobileNavigation).not.toContain("Connect MCP");
+    expect(mobileNavigation).not.toContain("Connect AI agent");
     expect(topBar).not.toContain("Connect MCP");
+    expect(topBar).not.toContain("Connect AI agent");
   });
 
   it("keeps editable field text large enough to avoid iOS focus zoom", () => {

@@ -5,12 +5,14 @@ import {
   forwardedMessage,
   normalizeDraftHtml,
   readDraftRecovery,
+  replyRecipients,
   replySendingIdentity,
   sendingIdentities,
   serializeDraft,
   splitRecipients
 } from "@/features/compose/compose-state";
 import type { Draft } from "@/features/drafts/types";
+import type { MessageDetail } from "@/features/messages/types";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -129,33 +131,34 @@ describe("composer state", () => {
   });
 
   it("uses the exact address that received the message as the reply identity", () => {
+    const inboundMessage: MessageDetail = {
+      id: "msg_1",
+      threadId: "thr_1",
+      mailboxId: "mbx_1",
+      direction: "inbound",
+      folder: "inbox",
+      fromAddress: "sender@example.com",
+      to: ["alias@example.com"],
+      cc: [],
+      bcc: [],
+      deliveredToAddress: "alias@example.com",
+      subject: "Account access",
+      snippet: "Please help",
+      textBody: "Please help",
+      htmlAvailable: false,
+      messageId: "<msg@example.com>",
+      inReplyTo: null,
+      references: [],
+      attachments: [],
+      receivedAt: "2026-07-27T14:00:00.000Z",
+      sentAt: null,
+      readAt: null,
+      starredAt: null,
+      hasAttachments: false,
+      createdAt: "2026-07-27T14:00:00.000Z"
+    };
     const identity = replySendingIdentity(
-      {
-        id: "msg_1",
-        threadId: "thr_1",
-        mailboxId: "mbx_1",
-        direction: "inbound",
-        folder: "inbox",
-        fromAddress: "sender@example.com",
-        to: ["alias@example.com"],
-        cc: [],
-        bcc: [],
-        deliveredToAddress: "alias@example.com",
-        subject: "Account access",
-        snippet: "Please help",
-        textBody: "Please help",
-        htmlAvailable: false,
-        messageId: "<msg@example.com>",
-        inReplyTo: null,
-        references: [],
-        attachments: [],
-        receivedAt: "2026-07-27T14:00:00.000Z",
-        sentAt: null,
-        readAt: null,
-        starredAt: null,
-        hasAttachments: false,
-        createdAt: "2026-07-27T14:00:00.000Z"
-      },
+      inboundMessage,
       [
         { mailboxId: "mbx_1", address: "support@example.com" },
         { mailboxId: "mbx_1", address: "alias@example.com" }
@@ -164,6 +167,29 @@ describe("composer state", () => {
     );
 
     expect(identity).toEqual({ mailboxId: "mbx_1", address: "alias@example.com" });
+    expect(replyRecipients(inboundMessage)).toEqual(["sender@example.com"]);
+    expect(
+      replyRecipients({
+        ...inboundMessage,
+        direction: "outbound",
+        folder: "sent",
+        fromAddress: "support@example.com",
+        to: ["SUPPORT@example.com", "customer@example.com"],
+        receivedAt: null,
+        sentAt: "2026-07-27T14:05:00.000Z"
+      })
+    ).toEqual(["customer@example.com"]);
+    expect(
+      replyRecipients({
+        ...inboundMessage,
+        direction: "outbound",
+        folder: "sent",
+        fromAddress: "support@example.com",
+        to: ["support@example.com"],
+        receivedAt: null,
+        sentAt: "2026-07-27T14:05:00.000Z"
+      })
+    ).toEqual([]);
   });
 
   it("uses the preferred mailbox primary address for new messages", () => {

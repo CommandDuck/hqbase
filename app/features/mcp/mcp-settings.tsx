@@ -1,7 +1,7 @@
 import * as React from "react";
+import { AgentConnectionDetails } from "@/features/agents/connection-dialog";
 import type { CurrentUser } from "@/features/auth/types";
 import { SettingsSection } from "@/features/settings/settings-section";
-import { McpConnectionDetails } from "./connection-dialog";
 
 type McpSettingsProps = {
   user: CurrentUser;
@@ -10,24 +10,29 @@ type McpSettingsProps = {
 export function McpSettings({ user }: McpSettingsProps): React.ReactElement {
   const [readOnlyEndpoint, setReadOnlyEndpoint] = React.useState("/mcp");
   const [fullEndpoint, setFullEndpoint] = React.useState("/mcp/full");
+  const [skillUrl, setSkillUrl] = React.useState("/skills/hqbase-mail/SKILL.md");
   const readOnlyEndpointId = React.useId();
   const fullEndpointId = React.useId();
+  const skillUrlId = React.useId();
 
   React.useEffect(() => {
     setReadOnlyEndpoint(new URL("/mcp", window.location.origin).toString());
     setFullEndpoint(new URL("/mcp/full", window.location.origin).toString());
+    setSkillUrl(new URL("/skills/hqbase-mail/SKILL.md", window.location.origin).toString());
   }, []);
 
   return (
     <SettingsSection
-      description="Choose a permission profile, then copy its Streamable HTTP endpoint."
+      description="Connect through MCP or install this deployment's Agent Skill."
       title="MCP"
     >
-      <McpConnectionDetails
+      <AgentConnectionDetails
         fullEndpoint={fullEndpoint}
         fullEndpointId={fullEndpointId}
         readOnlyEndpoint={readOnlyEndpoint}
         readOnlyEndpointId={readOnlyEndpointId}
+        skillUrl={skillUrl}
+        skillUrlId={skillUrlId}
         user={user}
       />
     </SettingsSection>

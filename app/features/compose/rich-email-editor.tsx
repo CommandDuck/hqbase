@@ -87,14 +87,14 @@ export function RichEmailEditor({
           <PiArrowUUpRight />
         </Tool>
         <Tool
-          label="PiTextB"
+          label="Bold"
           active={editor.isActive("bold")}
           onClick={() => editor.chain().focus().toggleBold().run()}
         >
           <PiTextB />
         </Tool>
         <Tool
-          label="PiTextItalic"
+          label="Italic"
           active={editor.isActive("italic")}
           onClick={() => editor.chain().focus().toggleItalic().run()}
         >

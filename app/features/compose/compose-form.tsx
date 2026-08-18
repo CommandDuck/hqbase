@@ -1,5 +1,5 @@
 import type * as React from "react";
-import { PiPaperclip, PiTrash } from "react-icons/pi";
+import { PiPaperclip, PiPaperPlaneTilt, PiTrash } from "react-icons/pi";
 
 import { Button } from "@/components/ui/button";
 import type { DraftAttachment } from "@/features/drafts/types";
@@ -89,7 +89,14 @@ export function ComposeForm(props: ComposeFormProps): React.ReactElement {
                 disabled={props.sendDisabled}
                 type="submit"
               >
-                {props.isPending ? "Sending" : "PiPaperPlaneTilt"}
+                {props.isPending ? (
+                  "Sending"
+                ) : (
+                  <>
+                    <PiPaperPlaneTilt aria-hidden="true" className="pointer-events-none" />
+                    <span className="sr-only">Send</span>
+                  </>
+                )}
               </Button>
               <Button asChild size="icon" type="button" variant="ghost">
                 <label aria-label="Add attachment" className="cursor-pointer">

@@ -87,6 +87,12 @@ jobs:
           pnpm build
           pnpm exec wrangler d1 migrations apply DB --remote --config "$config"
           pnpm exec wrangler deploy --config "$config" --secrets-file /tmp/hqbase-e2e-secrets.json
+          node --input-type=module -e '
+            import { loadManifest, writeManifest } from "./scripts/hqbase/manifest.mjs";
+            const manifest = loadManifest(process.env.DEPLOYMENT_NAME);
+            manifest.worker.deployed = true;
+            writeManifest(manifest);
+          '
       - name: Wait for the disposable custom domain
         run: |
           readiness_paths=(

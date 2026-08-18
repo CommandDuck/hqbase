@@ -23,6 +23,7 @@ import {
   forwardedMessage,
   normalizeDraftHtml,
   readDraftRecovery,
+  replyRecipients,
   replySendingIdentity,
   sendingIdentities,
   splitRecipients
@@ -115,7 +116,7 @@ export function ComposeDialog({
             replyToMessageId,
             forwardOfMessageId,
             from: preferredIdentity?.address ?? "",
-            to: mode === "reply" && message ? [message.fromAddress] : [],
+            to: mode === "reply" && message ? replyRecipients(message) : [],
             cc: [],
             bcc: [],
             subject:

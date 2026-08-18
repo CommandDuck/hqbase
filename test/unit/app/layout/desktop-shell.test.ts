@@ -9,12 +9,26 @@ const desktopLayout = readFileSync(
   new URL("../../../../app/components/layout/desktop-layout.ts", import.meta.url),
   "utf8"
 );
+const desktopShellHook = readFileSync(
+  new URL("../../../../app/hooks/use-desktop-shell.ts", import.meta.url),
+  "utf8"
+);
+const inboxPage = readFileSync(
+  new URL("../../../../app/features/inbox/inbox-page.tsx", import.meta.url),
+  "utf8"
+);
+const threadComposeSurface = readFileSync(
+  new URL("../../../../app/features/compose/thread-compose-surface.tsx", import.meta.url),
+  "utf8"
+);
 const styles = readFileSync(new URL("../../../../app/styles.css", import.meta.url), "utf8");
 
 describe("desktop application shell", () => {
   it("uses a persisted collapsible sidebar with an accessible toggle", () => {
     expect(appShell).toContain("sidebarCollapsedStorageKey");
     expect(appShell).toContain("sidebarCollapsed");
+    expect(appShell).not.toContain("ResizablePanelGroup");
+    expect(appShell).not.toContain('aria-label="Resize sidebar"');
     const sidebar = readFileSync(
       new URL("../../../../app/components/layout/sidebar.tsx", import.meta.url),
       "utf8"
@@ -24,16 +38,25 @@ describe("desktop application shell", () => {
     expect(sidebar).toContain("sidebarCollapsed");
   });
 
-  it("keeps the conversation list and reader within the desktop shell layout", () => {
+  it("opens a conversation in the full mail content area", () => {
     expect(appShell).toContain("desktopShell");
     expect(appShell).toContain("desktop-sidebar");
     expect(appShell).toContain("desktop-content");
+    expect(inboxPage).toContain("if (selectedId)");
+    expect(inboxPage).toContain("showBack");
+    expect(inboxPage).not.toContain("hqbase-conversation-workspace");
+    expect(inboxPage).not.toContain("ResizablePanelGroup");
   });
 
-  it("keeps the workspace visible on any screen size without a blocking guard", () => {
-    expect(desktopLayout).toContain("desktopMinimumWidth = 1024");
-    expect(desktopLayout).toContain("desktopMinimumHeight = 600");
+  it("switches to the compact shell below 1024 pixels without a blocking guard", () => {
+    expect(desktopLayout).not.toContain("desktopMinimumWidth");
+    expect(desktopLayout).not.toContain("desktopMinimumHeight");
+    expect(desktopShellHook).toContain("(min-width: 1024px)");
     expect(appShell).not.toContain("Make the HQBase window a little larger");
     expect(styles).not.toContain("desktop-window-guard");
+  });
+
+  it("keeps desktop Reply and Forward inside the app shell", () => {
+    expect(threadComposeSurface).not.toContain("createPortal(desktop");
   });
 });

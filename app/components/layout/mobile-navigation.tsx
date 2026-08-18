@@ -6,11 +6,13 @@ import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/s
 import type { CurrentUser } from "@/features/auth/types";
 import type { Mailbox } from "@/features/mailboxes/types";
 import type { UnreadCounts } from "@/features/notifications/types";
-import type { FolderId } from "@/lib/routes";
+import type { FolderId, SettingsTabId } from "@/lib/routes";
 import { Sidebar } from "./sidebar";
 
 type MobileNavigationProps = {
   activeFolder: FolderId;
+  activeSettingsTab?: SettingsTabId | undefined;
+  canManage?: boolean | undefined;
   draftCount: number;
   mailboxId: string;
   mailboxes: Mailbox[];
@@ -19,11 +21,14 @@ type MobileNavigationProps = {
   onCompose?: () => void;
   onFolderChange: (folder: FolderId) => void;
   onMailboxChange: (mailboxId: string) => void;
+  onSettingsTabChange?: ((tab: SettingsTabId) => void) | undefined;
   onSignedOut: () => void;
 };
 
 export function MobileNavigation({
   activeFolder,
+  activeSettingsTab,
+  canManage,
   draftCount,
   mailboxId,
   mailboxes,
@@ -32,6 +37,7 @@ export function MobileNavigation({
   onCompose,
   onFolderChange,
   onMailboxChange,
+  onSettingsTabChange,
   onSignedOut
 }: MobileNavigationProps): React.ReactElement {
   const [open, setOpen] = React.useState(false);
@@ -49,6 +55,11 @@ export function MobileNavigation({
 
   function handleCompose(): void {
     onCompose?.();
+    setOpen(false);
+  }
+
+  function handleSettingsTabChange(tab: SettingsTabId): void {
+    onSettingsTabChange?.(tab);
     setOpen(false);
   }
 
@@ -80,6 +91,8 @@ export function MobileNavigation({
         <SheetTitle className="sr-only">Navigation</SheetTitle>
         <Sidebar
           activeFolder={activeFolder}
+          activeSettingsTab={activeSettingsTab}
+          canManage={canManage}
           draftCount={draftCount}
           mailboxId={mailboxId}
           mailboxFilter={{
@@ -91,6 +104,7 @@ export function MobileNavigation({
           user={user}
           {...(onCompose ? { onCompose: handleCompose } : {})}
           onFolderChange={handleFolderChange}
+          {...(onSettingsTabChange ? { onSettingsTabChange: handleSettingsTabChange } : {})}
           onSignedOut={onSignedOut}
           variant="drawer"
         />

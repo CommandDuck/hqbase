@@ -15,11 +15,13 @@ import type { CurrentUser } from "@/features/auth/types";
 import type { Mailbox } from "@/features/mailboxes/types";
 import type { UnreadCounts } from "@/features/notifications/types";
 import { mailboxUnreadLabel } from "@/features/notifications/unread";
-import type { FolderId } from "@/lib/routes";
+import type { FolderId, SettingsTabId } from "@/lib/routes";
 import { MobileNavigation } from "./mobile-navigation";
 
 type TopBarProps = {
   activeFolder: FolderId;
+  activeSettingsTab?: SettingsTabId | undefined;
+  canManage?: boolean | undefined;
   draftCount: number;
   user: CurrentUser;
   mailboxes: Mailbox[];
@@ -30,6 +32,7 @@ type TopBarProps = {
   onFolderChange: (folder: FolderId) => void;
   onMailboxChange: (mailboxId: string) => void;
   onSearchChange: (search: string) => void;
+  onSettingsTabChange?: ((tab: SettingsTabId) => void) | undefined;
   onSignedOut: () => void;
   sidebarCollapsed?: boolean;
   onToggleSidebar?: () => void;
@@ -37,6 +40,8 @@ type TopBarProps = {
 
 export function TopBar({
   activeFolder,
+  activeSettingsTab,
+  canManage,
   draftCount,
   user,
   mailboxes,
@@ -47,6 +52,7 @@ export function TopBar({
   onFolderChange,
   onMailboxChange,
   onSearchChange,
+  onSettingsTabChange,
   onSignedOut,
   sidebarCollapsed,
   onToggleSidebar
@@ -68,6 +74,8 @@ export function TopBar({
       ) : null}
       <MobileNavigation
         activeFolder={activeFolder}
+        activeSettingsTab={activeSettingsTab}
+        canManage={canManage}
         draftCount={draftCount}
         mailboxId={mailboxId}
         mailboxes={mailboxes}
@@ -76,6 +84,7 @@ export function TopBar({
         onCompose={onCompose}
         onFolderChange={onFolderChange}
         onMailboxChange={onMailboxChange}
+        onSettingsTabChange={onSettingsTabChange}
         onSignedOut={onSignedOut}
       />
       <div className="relative min-w-0 max-w-xl flex-1">

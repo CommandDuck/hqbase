@@ -82,7 +82,7 @@ describe("conversation reader", () => {
     expect(html.indexOf("We can help.")).toBeLessThan(html.lastIndexOf(">Reply<"));
     expect(html.match(/>Reply</g)).toHaveLength(1);
     expect(html.match(/>Forward</g)).toHaveLength(1);
-    expect(html).not.toContain('data-compose-message-id="msg_1"');
+    expect(html).toContain('data-compose-message-id="msg_1"');
     expect(html).toContain('data-compose-message-id="msg_2"');
     expect(html).toContain('aria-label="Back to messages"');
     expect(html).toContain('aria-label="Archive conversation"');

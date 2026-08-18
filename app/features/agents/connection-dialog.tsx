@@ -1,79 +1,11 @@
 import * as React from "react";
-import { PiCheck, PiCopy, PiDownload, PiFileText, PiSparkle } from "react-icons/pi";
+import { PiCheck, PiCopy, PiDownload, PiFileText } from "react-icons/pi";
 
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { CurrentUser } from "@/features/auth/types";
 import { McpConnectionDetails } from "@/features/mcp/connection-dialog";
-
-type AgentConnectionDialogProps = {
-  open: boolean;
-  restoreFocusRef: React.RefObject<HTMLButtonElement | null>;
-  user: CurrentUser;
-  onOpenChange: (open: boolean) => void;
-};
-
-export function AgentConnectionDialog({
-  open,
-  restoreFocusRef,
-  user,
-  onOpenChange
-}: AgentConnectionDialogProps): React.ReactElement {
-  const [readOnlyEndpoint, setReadOnlyEndpoint] = React.useState("/mcp");
-  const [fullEndpoint, setFullEndpoint] = React.useState("/mcp/full");
-  const [skillUrl, setSkillUrl] = React.useState("/skills/hqbase-mail/SKILL.md");
-  const readOnlyEndpointId = React.useId();
-  const fullEndpointId = React.useId();
-  const skillUrlId = React.useId();
-
-  React.useEffect(() => {
-    setReadOnlyEndpoint(new URL("/mcp", window.location.origin).toString());
-    setFullEndpoint(new URL("/mcp/full", window.location.origin).toString());
-    setSkillUrl(new URL("/skills/hqbase-mail/SKILL.md", window.location.origin).toString());
-  }, []);
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className="top-[calc(env(safe-area-inset-top)+(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom))/2)] max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-1rem)] w-[min(92vw,560px)] gap-3 overflow-y-auto overscroll-contain p-4 sm:top-1/2 sm:max-h-[calc(100dvh-2rem)] sm:gap-4 sm:p-5"
-        onCloseAutoFocus={(event) => {
-          event.preventDefault();
-          restoreFocusRef.current?.focus();
-        }}
-      >
-        <DialogHeader>
-          <div className="flex items-center gap-2">
-            <span className="inline-flex size-8 items-center justify-center rounded-md border bg-muted/50 text-muted-foreground">
-              <PiSparkle aria-hidden="true" className="size-4" />
-            </span>
-            <DialogTitle>Connect AI agent</DialogTitle>
-          </div>
-          <DialogDescription>
-            Connect through MCP or install this deployment&apos;s Agent Skill.
-          </DialogDescription>
-        </DialogHeader>
-
-        <AgentConnectionDetails
-          fullEndpoint={fullEndpoint}
-          fullEndpointId={fullEndpointId}
-          skillUrl={skillUrl}
-          skillUrlId={skillUrlId}
-          readOnlyEndpoint={readOnlyEndpoint}
-          readOnlyEndpointId={readOnlyEndpointId}
-          user={user}
-        />
-      </DialogContent>
-    </Dialog>
-  );
-}
 
 export function AgentConnectionDetails({
   fullEndpoint,
@@ -115,6 +47,7 @@ export function AgentConnectionDetails({
             fullEndpointId={fullEndpointId}
             readOnlyEndpoint={readOnlyEndpoint}
             readOnlyEndpointId={readOnlyEndpointId}
+            showIdentity={false}
             user={user}
           />
         </TabsContent>

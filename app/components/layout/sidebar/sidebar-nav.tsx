@@ -83,9 +83,9 @@ export function SettingsNav({
                   href={appRoutePath({ kind: "settings", tab })}
                   onClick={(event) => {
                     if (isModifiedNavigation(event)) return;
+                    if (!onSettingsTabChange) return;
                     event.preventDefault();
-                    if (onSettingsTabChange) onSettingsTabChange(tab);
-                    else onFolderChange("settings");
+                    onSettingsTabChange(tab);
                   }}
                 >
                   <Icon />

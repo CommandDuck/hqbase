@@ -28,6 +28,8 @@ export function ConversationMessages({
   const threadFingerprint = messages.map((message) => message.id).join(":");
   const [expandedThread, setExpandedThread] = React.useState<string | null>(null);
   const showMiddle = expandedThread === threadFingerprint;
+  const replyTarget =
+    [...messages].reverse().find((message) => message.direction === "inbound") ?? messages.at(-1);
 
   if (hiddenCount === 0) {
     return (
@@ -112,11 +114,11 @@ export function ConversationMessages({
         {onCompose && isLast ? (
           <footer className="mt-5 flex flex-wrap items-center gap-2">
             <Button
-              aria-label={`Reply to message from ${message.fromAddress}`}
+              aria-label={`Reply to message from ${replyTarget?.fromAddress ?? message.fromAddress}`}
               className="h-9 min-w-24 rounded-full px-4"
               data-compose-action="reply"
-              data-compose-message-id={message.id}
-              onClick={() => onCompose(message, "reply")}
+              data-compose-message-id={replyTarget?.id ?? message.id}
+              onClick={() => onCompose(replyTarget ?? message, "reply")}
               size="sm"
               type="button"
               variant="outline"
