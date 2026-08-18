@@ -1,0 +1,120 @@
+import { AppError } from "../../lib/errors";
+
+import {
+  type ChangeCursor,
+  compareChangeSequences,
+  decodeChangeCursor,
+  encodeChangeCursor
+} from "./change-cursor";
+import { mapMessageSummary } from "./queries";
+import type { MessageRow, MessageSummary } from "./types";
+
+export const defaultChangeLimit = 100;
+export const maxChangeLimit = 100;
+
+export type MessageChange =
+  | { type: "upsert"; message: MessageSummary }
+  | { type: "delete"; messageId: string; mailboxId: string };
+
+export type MessageChangePage = {
+  changes: MessageChange[];
+  nextCursor: string;
+  hasMore: boolean;
+};
+
+type JournalRow = {
+  sequence: string;
+  message_id: string;
+  mailbox_id: string;
+  kind: "upsert" | "delete";
+};
+
+const messageSelect = `SELECT messages.*,
+  (SELECT address FROM mailbox_addresses
+   WHERE id = messages.delivered_to_address_id) AS delivered_to_address
+  FROM messages`;
+
+export async function listMessageChanges(
+  db: D1Database,
+  input: { cursor?: string | undefined; limit: number; mailboxIds: string[] }
+): Promise<MessageChangePage> {
+  const currentHighWater = await getCurrentHighWater(db);
+  if (!input.cursor) {
+    return emptyPage({ after: currentHighWater, highWater: null });
+  }
+
+  const cursor = decodeChangeCursor(input.cursor);
+  validateCursorBounds(cursor, currentHighWater);
+  const highWater = cursor.highWater ?? currentHighWater;
+  if (input.mailboxIds.length === 0 || compareChangeSequences(cursor.after, highWater) === 0) {
+    return emptyPage({ after: highWater, highWater: null });
+  }
+
+  const journal = await db
+    .prepare(
+      `SELECT CAST(sequence AS TEXT) AS sequence, message_id, mailbox_id, kind
+       FROM message_changes
+       WHERE sequence > CAST(? AS INTEGER)
+         AND sequence <= CAST(? AS INTEGER)
+         AND mailbox_id IN (${input.mailboxIds.map(() => "?").join(", ")})
+       ORDER BY sequence ASC
+       LIMIT ?`
+    )
+    .bind(cursor.after, highWater, ...input.mailboxIds, input.limit + 1)
+    .all<JournalRow>();
+
+  const pageRows = journal.results.slice(0, input.limit);
+  const hasMore = journal.results.length > input.limit;
+  const messages = await currentMessages(db, pageRows);
+  const changes = pageRows.flatMap<MessageChange>((row) => {
+    if (row.kind === "delete") {
+      return [{ type: "delete", messageId: row.message_id, mailboxId: row.mailbox_id }];
+    }
+    const message = messages.get(row.message_id);
+    return message?.mailbox_id === row.mailbox_id
+      ? [{ type: "upsert", message: mapMessageSummary(message) }]
+      : [];
+  });
+
+  const finalRow = pageRows.at(-1);
+  const nextCursor =
+    hasMore && finalRow
+      ? encodeChangeCursor({ after: finalRow.sequence, highWater })
+      : encodeChangeCursor({ after: highWater, highWater: null });
+  return { changes, nextCursor, hasMore };
+}
+
+async function getCurrentHighWater(db: D1Database): Promise<string> {
+  const row = await db
+    .prepare("SELECT CAST(COALESCE(MAX(sequence), 0) AS TEXT) AS sequence FROM message_changes")
+    .first<{ sequence: string }>();
+  return row?.sequence ?? "0";
+}
+
+async function currentMessages(
+  db: D1Database,
+  rows: JournalRow[]
+): Promise<Map<string, MessageRow>> {
+  const ids = [
+    ...new Set(rows.filter((row) => row.kind === "upsert").map((row) => row.message_id))
+  ];
+  if (ids.length === 0) return new Map();
+  const result = await db
+    .prepare(`${messageSelect} WHERE messages.id IN (${ids.map(() => "?").join(", ")})`)
+    .bind(...ids)
+    .all<MessageRow>();
+  return new Map(result.results.map((row) => [row.id, row]));
+}
+
+function validateCursorBounds(cursor: ChangeCursor, currentHighWater: string): void {
+  if (
+    compareChangeSequences(cursor.after, currentHighWater) > 0 ||
+    (cursor.highWater !== null && compareChangeSequences(cursor.highWater, currentHighWater) > 0)
+  ) {
+    throw new AppError("INVALID_CHANGE_CURSOR", "Change cursor is invalid.", 400);
+  }
+}
+
+function emptyPage(cursor: ChangeCursor): MessageChangePage {
+  return { changes: [], nextCursor: encodeChangeCursor(cursor), hasMore: false };
+}

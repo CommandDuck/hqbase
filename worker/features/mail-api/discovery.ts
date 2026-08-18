@@ -133,15 +133,17 @@ The method index is an orientation aid. Consult ${openApiUrl} for exact paramete
 ## Operating rules
 
 - Use \`Content-Type: application/json\` for JSON requests and \`multipart/form-data\` for draft attachment uploads.
-- Treat message and conversation cursors as opaque strings and return them unchanged. Do not construct or edit a cursor.
+- Treat message, conversation, and change cursors as opaque strings and return them unchanged. Do not construct or edit a cursor.
 - \`GET ${apiBase}/messages\` returns one page. Follow the \`Link: <url>; rel="next"\` response header for the next page. No \`Link\` header means the last page.
+- To start message synchronization, get a checkpoint from \`GET ${apiBase}/changes\` without a cursor, paginate the full message list, then read changes after the checkpoint until \`hasMore\` is false.
+- List mailboxes before each change cycle. Remove cached mail for mailboxes that are no longer readable, and bootstrap each newly readable mailbox.
 - Ignore response fields you do not recognize.
 - Do not log access tokens, refresh tokens, message bodies, or attachments.
 - Do not log device codes or user codes, and do not paste them into unrelated chats or tools.
 - Do not send or reply unless that external action matches the person's request.
 - Sending and replying are not idempotent. Never retry them blindly.
 - Use the returned draft version when updating a draft so newer work is not overwritten.
-- HQBase does not currently expose a changes or delta feed. Refresh by listing messages or conversations again.
+- A \`410 CHANGE_CURSOR_EXPIRED\` response requires a new full message bootstrap.
 
 ## Errors
 
