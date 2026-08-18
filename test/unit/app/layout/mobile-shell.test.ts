@@ -9,8 +9,8 @@ const mobileNavigation = readFileSync(
   new URL("../../../../app/components/layout/mobile-navigation.tsx", import.meta.url),
   "utf8"
 );
-const accountMenu = readFileSync(
-  new URL("../../../../app/components/layout/account-menu.tsx", import.meta.url),
+const settingsPage = readFileSync(
+  new URL("../../../../app/features/settings/settings-page.tsx", import.meta.url),
   "utf8"
 );
 const topBar = readFileSync(
@@ -78,8 +78,9 @@ describe("mobile application shell", () => {
     expect(mcpConnectionDialog).toContain("/mcp/full");
   });
 
-  it("keeps Connect MCP in the profile menu instead of standalone navigation", () => {
-    expect(accountMenu).toContain("Connect MCP");
+  it("keeps Connect MCP in settings instead of standalone navigation", () => {
+    expect(settingsPage).toContain("McpSettings");
+    expect(settingsPage).toContain('"mcp"');
     expect(appShell).not.toContain("Connect MCP");
     expect(mobileNavigation).not.toContain("Connect MCP");
     expect(topBar).not.toContain("Connect MCP");

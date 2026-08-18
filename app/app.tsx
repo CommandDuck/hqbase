@@ -45,7 +45,7 @@ const DraftComposeDialog = React.lazy(() =>
 export function App(): React.ReactElement {
   const publicAuthenticationPath = isPublicAuthenticationPath(window.location.pathname);
   const [setup, setSetup] = React.useState<SetupStatus | null>(null);
-  const [user, setUser] = React.useState<CurrentUser | null>(null);
+  const [user, setUser] = React.useState<CurrentUser | null | undefined>(undefined);
   const [mailboxes, setMailboxes] = React.useState<Mailbox[]>([]);
   const [users, setUsers] = React.useState<WorkspaceUser[]>([]);
   const [mailboxId, setMailboxId] = React.useState("all");
@@ -148,7 +148,7 @@ export function App(): React.ReactElement {
     );
   }
 
-  if (isLoading && setup === null) {
+  if (isLoading || user === undefined || setup === null) {
     return <FullScreenStatus label="Loading HQBase" />;
   }
 
@@ -310,8 +310,15 @@ export function App(): React.ReactElement {
 
 function FullScreenStatus({ label }: { label: string }): React.ReactElement {
   return (
-    <main className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">
-      {label}
+    <main
+      aria-busy="true"
+      className="flex min-h-screen items-center justify-center bg-rail text-sm text-muted-foreground"
+    >
+      <span
+        aria-hidden="true"
+        className="size-5 rounded-full border-2 border-muted-foreground/20 border-t-foreground animate-spin"
+      />
+      <span className="sr-only">{label}</span>
     </main>
   );
 }
