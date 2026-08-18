@@ -204,10 +204,10 @@ export async function updateConversationAction(
   }
 
   const result = await db
-    .prepare(`UPDATE messages SET ${set} WHERE ${where.join(" AND ")}`)
+    .prepare(`UPDATE messages SET ${set} WHERE ${where.join(" AND ")} RETURNING id`)
     .bind(...bindings)
-    .run();
-  return { affected: result.meta.changes, threadId: selected.thread_id };
+    .all<{ id: string }>();
+  return { affected: result.results.length, threadId: selected.thread_id };
 }
 
 function mapConversationSummary(row: ConversationRow): ConversationSummary {

@@ -82,6 +82,7 @@ function validateOpenApi(document) {
   const requiredPaths = [
     "/api/v1/mailboxes",
     "/api/v1/messages",
+    "/api/v1/changes",
     "/api/v1/conversations",
     "/api/v1/drafts",
     "/api/v1/send",
