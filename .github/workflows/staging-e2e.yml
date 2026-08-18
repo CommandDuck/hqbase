@@ -53,6 +53,8 @@ jobs:
           restore-keys: ${{ runner.os }}-${{ runner.arch }}-playwright-
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright install --with-deps chromium
+      - name: Verify resumable operator provisioning and cleanup
+        run: node scripts/test-cli-recovery.mjs "recovery-${{ github.run_id }}"
       - name: Create disposable customer resources
         run: >-
           pnpm hqbase install
