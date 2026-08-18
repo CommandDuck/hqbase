@@ -51,22 +51,25 @@ const secondMessage: MessageDetail = {
 };
 
 describe("conversation message actions", () => {
-  it("targets the exact message selected for Reply or Forward", async () => {
+  it("targets only the last message for Reply or Forward", async () => {
     const onCompose = vi.fn();
     const view = await renderComponent(
       <ConversationMessages messages={[firstMessage, secondMessage]} onCompose={onCompose} />
     );
 
-    const firstReply = view.container.querySelector<HTMLButtonElement>(
-      '[data-compose-action="reply"][data-compose-message-id="msg_1"]'
+    expect(
+      view.container.querySelector('[data-compose-action="reply"][data-compose-message-id="msg_1"]')
+    ).toBeNull();
+    const lastReply = view.container.querySelector<HTMLButtonElement>(
+      '[data-compose-action="reply"][data-compose-message-id="msg_2"]'
     );
-    const secondForward = view.container.querySelector<HTMLButtonElement>(
+    const lastForward = view.container.querySelector<HTMLButtonElement>(
       '[data-compose-action="forward"][data-compose-message-id="msg_2"]'
     );
-    await flushHookEffects(() => firstReply?.click());
-    await flushHookEffects(() => secondForward?.click());
+    await flushHookEffects(() => lastReply?.click());
+    await flushHookEffects(() => lastForward?.click());
 
-    expect(onCompose).toHaveBeenNthCalledWith(1, firstMessage, "reply");
+    expect(onCompose).toHaveBeenNthCalledWith(1, secondMessage, "reply");
     expect(onCompose).toHaveBeenNthCalledWith(2, secondMessage, "forward");
 
     await view.unmount();

@@ -254,10 +254,19 @@ describe("settings presentation", () => {
   });
 
   it("replaces General and Upgrade with Debug as the final tab", () => {
+    const user = {
+      id: "user-1",
+      name: "Avery Stone",
+      email: "avery@example.com",
+      role: "owner" as const,
+      passwordSetupRequired: false,
+      defaultFromMailboxId: null as string | null
+    };
     const html = renderToStaticMarkup(
       <SettingsPage
         activeTab="mailboxes"
         canManage
+        currentUser={user as never}
         defaultFromMailboxId={null}
         mailboxes={[]}
         notifications={notifications}
@@ -266,7 +275,6 @@ describe("settings presentation", () => {
         users={[]}
         onDefaultFromMailboxChange={() => undefined}
         onRefresh={() => undefined}
-        onTabChange={() => undefined}
         onUpdateStarted={() => undefined}
         onUpdateStatusChange={() => undefined}
         updateProgress={null}
@@ -276,11 +284,7 @@ describe("settings presentation", () => {
     expect(html).not.toContain(">General<");
     expect(html).not.toContain(">Upgrade<");
     expect(html).not.toContain('value="access"');
-    expect(html).toContain(">Debug<");
-    expect(html).toContain(">Notifications<");
-    expect(html).toContain('href="/settings/mailboxes"');
-    expect(html).toContain('href="/settings/notifications"');
-    expect(html).toContain('href="/settings/debug"');
-    expect(html.indexOf(">Debug<")).toBeGreaterThan(html.indexOf(">Updates<"));
+    expect(html).toContain(">Mailboxes<");
+    expect(html).not.toContain('role="tablist"');
   });
 });

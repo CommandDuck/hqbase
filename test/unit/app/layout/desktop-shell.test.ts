@@ -9,44 +9,31 @@ const desktopLayout = readFileSync(
   new URL("../../../../app/components/layout/desktop-layout.ts", import.meta.url),
   "utf8"
 );
-const inboxPage = readFileSync(
-  new URL("../../../../app/features/inbox/inbox-page.tsx", import.meta.url),
-  "utf8"
-);
-const topBar = readFileSync(
-  new URL("../../../../app/components/layout/top-bar.tsx", import.meta.url),
-  "utf8"
-);
-const resizable = readFileSync(
-  new URL("../../../../app/components/ui/resizable.tsx", import.meta.url),
-  "utf8"
-);
 const styles = readFileSync(new URL("../../../../app/styles.css", import.meta.url), "utf8");
 
 describe("desktop application shell", () => {
-  it("uses a persisted collapsible sidebar with an accessible resize divider", () => {
-    expect(appShell).toContain("usePanelRef");
-    expect(appShell).toContain('aria-label="Resize sidebar"');
+  it("uses a persisted collapsible sidebar with an accessible toggle", () => {
     expect(appShell).toContain("sidebarCollapsedStorageKey");
-    expect(appShell).toContain("sidebarWidthStorageKey");
-    expect(topBar).toContain("Show sidebar");
-    expect(topBar).toContain("Hide sidebar");
+    expect(appShell).toContain("sidebarCollapsed");
+    const sidebar = readFileSync(
+      new URL("../../../../app/components/layout/sidebar.tsx", import.meta.url),
+      "utf8"
+    );
+    expect(sidebar).toContain("Show sidebar");
+    expect(sidebar).toContain("Hide sidebar");
+    expect(sidebar).toContain("sidebarCollapsed");
   });
 
-  it("keeps the conversation list and reader keyboard-resizable within bounded widths", () => {
-    expect(inboxPage).toContain('aria-label="Resize conversation list"');
-    expect(inboxPage).toContain("minimumConversationListWidth");
-    expect(inboxPage).toContain("maximumConversationListWidth");
-    expect(inboxPage).toContain("minimumConversationReaderWidth");
-    expect(inboxPage).toContain("conversationListWidthStorageKey");
-    expect(resizable).toContain("ResizablePrimitive.Separator");
+  it("keeps the conversation list and reader within the desktop shell layout", () => {
+    expect(appShell).toContain("desktopShell");
+    expect(appShell).toContain("desktop-sidebar");
+    expect(appShell).toContain("desktop-content");
   });
 
-  it("shows a soft minimum-size guard instead of switching a fine-pointer window to mobile", () => {
+  it("keeps the workspace visible on any screen size without a blocking guard", () => {
     expect(desktopLayout).toContain("desktopMinimumWidth = 1024");
     expect(desktopLayout).toContain("desktopMinimumHeight = 600");
-    expect(appShell).toContain("Make the HQBase window a little larger");
-    expect(styles).toContain("(hover: hover) and (pointer: fine) and (max-width: 1023px)");
-    expect(styles).toContain("(hover: hover) and (pointer: fine) and (max-height: 599px)");
+    expect(appShell).not.toContain("Make the HQBase window a little larger");
+    expect(styles).not.toContain("desktop-window-guard");
   });
 });

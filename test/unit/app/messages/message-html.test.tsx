@@ -26,8 +26,8 @@ describe("message HTML view", () => {
 
     expect(blocked).toContain("img-src https://mail.example.com;");
     expect(blocked).toContain("font-src https://mail.example.com;");
-    expect(blocked).toContain('font-family: "Geist Sans"');
-    expect(blocked).toContain('url("/fonts/Geist-Regular.woff2")');
+    expect(blocked).toContain("font: small/1.5 Arial, Helvetica, sans-serif");
+    expect(blocked).not.toContain("font-family: Inter");
     expect(blocked).toContain('data-theme="dark"');
     expect(blocked).toContain("background: transparent");
     expect(blocked).toContain("color: #f2f2f2");

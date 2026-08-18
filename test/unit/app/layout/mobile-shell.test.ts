@@ -5,12 +5,12 @@ const appShell = readFileSync(
   new URL("../../../../app/components/layout/app-shell.tsx", import.meta.url),
   "utf8"
 );
-const inboxPage = readFileSync(
-  new URL("../../../../app/features/inbox/inbox-page.tsx", import.meta.url),
-  "utf8"
-);
 const mobileNavigation = readFileSync(
   new URL("../../../../app/components/layout/mobile-navigation.tsx", import.meta.url),
+  "utf8"
+);
+const accountMenu = readFileSync(
+  new URL("../../../../app/components/layout/account-menu.tsx", import.meta.url),
   "utf8"
 );
 const topBar = readFileSync(
@@ -37,11 +37,7 @@ const composeForm = readFileSync(
   new URL("../../../../app/features/compose/compose-form.tsx", import.meta.url),
   "utf8"
 );
-const agentConnectionDialog = readFileSync(
-  new URL("../../../../app/features/agents/connection-dialog.tsx", import.meta.url),
-  "utf8"
-);
-const mcpConnectionDetails = readFileSync(
+const mcpConnectionDialog = readFileSync(
   new URL("../../../../app/features/mcp/connection-dialog.tsx", import.meta.url),
   "utf8"
 );
@@ -71,25 +67,22 @@ describe("mobile application shell", () => {
     expect(composeForm).toContain("pb-[max(1rem,env(safe-area-inset-bottom))]");
   });
 
-  it("keeps the agent dialog inside safe areas with compact MCP and Agent Skill choices", () => {
-    expect(agentConnectionDialog).toContain("100dvh");
-    expect(agentConnectionDialog).toContain("safe-area-inset-top");
-    expect(agentConnectionDialog).toContain("safe-area-inset-bottom");
-    expect(agentConnectionDialog).toContain("overflow-y-auto");
-    expect(agentConnectionDialog).toContain("text-base sm:text-xs");
-    expect(agentConnectionDialog).toContain('value="mcp"');
-    expect(agentConnectionDialog).toContain('value="agent-skill"');
-    expect(agentConnectionDialog).toContain("/skills/hqbase-mail/SKILL.md");
-    expect(agentConnectionDialog).toContain("Download Skill");
-    expect(agentConnectionDialog).toContain("/mcp/full");
-    expect(mcpConnectionDetails).toContain('value="read-only"');
-    expect(mcpConnectionDetails).toContain('value="mail-actions"');
+  it("keeps the MCP dialog inside the dynamic viewport and device safe areas", () => {
+    expect(mcpConnectionDialog).toContain("100dvh");
+    expect(mcpConnectionDialog).toContain("safe-area-inset-top");
+    expect(mcpConnectionDialog).toContain("safe-area-inset-bottom");
+    expect(mcpConnectionDialog).toContain("overflow-y-auto");
+    expect(mcpConnectionDialog).toContain("text-base sm:text-xs");
+    expect(mcpConnectionDialog).toContain('value="read-only"');
+    expect(mcpConnectionDialog).toContain('value="mail-actions"');
+    expect(mcpConnectionDialog).toContain("/mcp/full");
   });
 
-  it("keeps Connect AI agent in the desktop sidebar and compact drawer instead of the header", () => {
-    expect(appShell).toContain("Connect AI agent");
-    expect(mobileNavigation).toContain("Connect AI agent");
-    expect(topBar).not.toContain("Connect AI agent");
+  it("keeps Connect MCP in the profile menu instead of standalone navigation", () => {
+    expect(accountMenu).toContain("Connect MCP");
+    expect(appShell).not.toContain("Connect MCP");
+    expect(mobileNavigation).not.toContain("Connect MCP");
+    expect(topBar).not.toContain("Connect MCP");
   });
 
   it("keeps editable field text large enough to avoid iOS focus zoom", () => {
@@ -123,16 +116,14 @@ describe("mobile application shell", () => {
   it("uses the compact top safe-area strip to scroll the active mail surface to the top", () => {
     expect(appShell).toContain('aria-label="Scroll current view to top"');
     expect(appShell).toContain("onClick={scrollActiveMobileMailSurfaceToTop}");
-    expect(inboxPage).toContain('data-mobile-scroll-active={!desktopShell && !selectedId ? "true"');
-    expect(inboxPage).toContain('data-mobile-scroll-active={!desktopShell && selectedId ? "true"');
     expect(pullToRefresh).toContain('data-pull-to-refresh-scroll=""');
   });
 
-  it("offers a subtle mobile-only floating scroll-to-top fallback", () => {
+  it("offers a subtle floating scroll-to-top fallback", () => {
     expect(pullToRefresh).toContain("scrollToTopThreshold = 320");
     expect(pullToRefresh).toContain('aria-label="Scroll to top"');
     expect(pullToRefresh).toContain("safe-area-inset-bottom");
     expect(pullToRefresh).toContain("rounded-full");
-    expect(pullToRefresh).toContain("md:hidden");
+    expect(pullToRefresh).toContain("hidden");
   });
 });

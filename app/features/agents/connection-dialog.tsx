@@ -1,4 +1,4 @@
-import { Check, Copy, Download, FileText, Sparkles } from "lucide-react";
+import { PiCheck, PiCopy, PiDownload, PiFileText, PiSparkle } from "react-icons/pi";
 import * as React from "react";
 
 import { Button } from "@/components/ui/button";
@@ -52,7 +52,7 @@ export function AgentConnectionDialog({
         <DialogHeader>
           <div className="flex items-center gap-2">
             <span className="inline-flex size-8 items-center justify-center rounded-md border bg-muted/50 text-muted-foreground">
-              <Sparkles aria-hidden="true" className="size-4" />
+              <PiSparkle aria-hidden="true" className="size-4" />
             </span>
             <DialogTitle>Connect AI agent</DialogTitle>
           </div>
@@ -115,6 +115,7 @@ export function AgentConnectionDetails({
             fullEndpointId={fullEndpointId}
             readOnlyEndpoint={readOnlyEndpoint}
             readOnlyEndpointId={readOnlyEndpointId}
+            user={user}
           />
         </TabsContent>
         <TabsContent className="mt-3" value="agent-skill">
@@ -148,7 +149,7 @@ export function AgentSkillDetails({
       <section className="flex flex-col gap-3 rounded-lg border bg-muted/20 p-3">
         <div className="flex items-start gap-3">
           <span className="mt-0.5 inline-flex size-8 shrink-0 items-center justify-center rounded-md border bg-background text-muted-foreground">
-            <FileText aria-hidden="true" className="size-4" />
+            <PiFileText aria-hidden="true" className="size-4" />
           </span>
           <div className="min-w-0">
             <p className="font-medium text-foreground">Deployment-local Agent Skill</p>
@@ -178,15 +179,15 @@ export function AgentSkillDetails({
               variant="outline"
             >
               {copied ? (
-                <Check aria-hidden="true" data-icon="inline-start" />
+                <PiCheck aria-hidden="true" data-icon="inline-start" />
               ) : (
-                <Copy aria-hidden="true" data-icon="inline-start" />
+                <PiCopy aria-hidden="true" data-icon="inline-start" />
               )}
               {copied ? "Copied" : "Copy URL"}
             </Button>
             <Button asChild size="sm" variant="outline">
               <a download="SKILL.md" href={skillUrl}>
-                <Download aria-hidden="true" data-icon="inline-start" />
+                <PiDownload aria-hidden="true" data-icon="inline-start" />
                 Download Skill
               </a>
             </Button>

@@ -1,5 +1,5 @@
-import { Paperclip, Trash2 } from "lucide-react";
 import type * as React from "react";
+import { PiPaperclip, PiTrash } from "react-icons/pi";
 
 import { Button } from "@/components/ui/button";
 import type { DraftAttachment } from "@/features/drafts/types";
@@ -89,11 +89,11 @@ export function ComposeForm(props: ComposeFormProps): React.ReactElement {
                 disabled={props.sendDisabled}
                 type="submit"
               >
-                {props.isPending ? "Sending" : "Send"}
+                {props.isPending ? "Sending" : "PiPaperPlaneTilt"}
               </Button>
               <Button asChild size="icon" type="button" variant="ghost">
                 <label aria-label="Add attachment" className="cursor-pointer">
-                  <Paperclip />
+                  <PiPaperclip aria-hidden="true" className="pointer-events-none" />
                   <input
                     className="sr-only"
                     multiple
@@ -113,7 +113,7 @@ export function ComposeForm(props: ComposeFormProps): React.ReactElement {
               variant="ghost"
               onClick={props.onDiscard}
             >
-              <Trash2 />
+              <PiTrash aria-hidden="true" className="pointer-events-none" />
             </Button>
           </footer>
         </form>

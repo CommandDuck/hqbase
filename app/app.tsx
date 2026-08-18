@@ -187,6 +187,8 @@ export function App(): React.ReactElement {
     <>
       <AppShell
         activeFolder={activeFolder}
+        activeSettingsTab={settingsTab}
+        canManage={user.role === "owner" || user.role === "admin"}
         draftCount={draftState.drafts.length}
         mailboxId={mailboxId}
         mailboxes={contentMailboxes}
@@ -211,6 +213,7 @@ export function App(): React.ReactElement {
                 : { kind: "mail", folder, messageId: null }
           );
         }}
+        onSettingsTabChange={(tab) => navigate({ kind: "settings", tab })}
         onMailboxChange={setMailboxId}
         onSearchChange={setSearch}
         onSignedOut={() => {
@@ -223,6 +226,7 @@ export function App(): React.ReactElement {
               <SettingsPage
                 activeTab={settingsTab}
                 canManage={user.role === "owner" || user.role === "admin"}
+                currentUser={user}
                 defaultFromMailboxId={user.defaultFromMailboxId}
                 mailboxes={mailboxes}
                 notifications={mailSync.notifications}
@@ -232,7 +236,6 @@ export function App(): React.ReactElement {
                   setUser((current) => (current ? { ...current, defaultFromMailboxId } : current));
                 }}
                 onRefresh={() => void reload()}
-                onTabChange={(tab) => navigate({ kind: "settings", tab })}
                 onUpdateStarted={updateMonitor.start}
                 onUpdateStatusChange={updateMonitor.acceptStatus}
                 updateProgress={updateMonitor.progress}

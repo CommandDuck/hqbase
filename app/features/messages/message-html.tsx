@@ -1,5 +1,5 @@
-import { ImageOff } from "lucide-react";
 import * as React from "react";
+import { PiImageBroken } from "react-icons/pi";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -243,7 +243,7 @@ export function RemoteImagesAlert({
 }): React.ReactElement {
   return (
     <Alert>
-      <ImageOff />
+      <PiImageBroken />
       <AlertTitle>Remote images are hidden</AlertTitle>
       <AlertDescription className="flex flex-col items-start gap-3">
         <p>Loading them may tell the sender that you opened this message.</p>
@@ -274,14 +274,14 @@ export function PlainTextMessage({ message }: MessageHtmlProps): React.ReactElem
   const content = splitQuotedText(message.textBody || message.snippet);
   return (
     <div className="flex flex-col gap-4">
-      <pre className="whitespace-pre-wrap break-words font-sans text-sm leading-7 text-foreground/90">
+      <pre className="whitespace-pre-wrap break-words font-[Arial,Helvetica,sans-serif] text-[small] leading-[1.5] text-foreground/90">
         {content.body}
       </pre>
       {content.quote ? (
         <>
           <QuotedContentDivider expanded={expanded} onToggle={() => setExpanded((open) => !open)} />
           {expanded ? (
-            <pre className="whitespace-pre-wrap break-words font-sans text-sm leading-7 text-muted-foreground">
+            <pre className="whitespace-pre-wrap break-words border-l border-border pl-[1ex] font-[Arial,Helvetica,sans-serif] text-[small] leading-[1.5] text-muted-foreground">
               {content.quote}
             </pre>
           ) : null}
