@@ -47,7 +47,16 @@ export function writeManifest(manifest, options = {}) {
     return;
   }
   ensureDeploymentDir(manifest.name);
-  fs.writeFileSync(manifestPath(manifest.name), `${JSON.stringify(manifest, null, 2)}\n`);
+  const file = manifestPath(manifest.name);
+  const temporary = `${file}.${process.pid}.tmp`;
+  try {
+    fs.writeFileSync(temporary, `${JSON.stringify(manifest, null, 2)}\n`, { mode: 0o600 });
+    fs.renameSync(temporary, file);
+  } finally {
+    if (fs.existsSync(temporary)) {
+      fs.unlinkSync(temporary);
+    }
+  }
 }
 
 export function manifestExists(name) {
