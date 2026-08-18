@@ -10,24 +10,47 @@ const repositoryWranglerConfig = JSON.parse(
 );
 
 describe("HQBase installation resources", () => {
-  it("creates a fresh, unowned manifest before provisioning", () => {
+  it("creates a fresh manifest with independent unclaimed resources", () => {
     const manifest = createManifest("qa", {});
 
     expect(manifest.d1).toEqual({
       name: "hqbase-qa",
-      id: "00000000-0000-0000-0000-000000000000",
-      created: false,
-      reused: false
+      id: null,
+      ownership: "unclaimed"
     });
     expect(manifest.r2).toEqual({
       bucket: "hqbase-qa-mail",
-      created: false,
-      reused: false
+      ownership: "unclaimed"
     });
     expect(manifest.worker.name).toBe("hqbase-qa");
-    expect(manifest.queue.name).toBe("hqbase-qa-jobs");
-    expect(manifest.version).toBe(2);
+    expect(manifest.queue).toEqual({
+      primary: { name: "hqbase-qa-jobs", id: null, ownership: "unclaimed" },
+      deadLetter: { name: "hqbase-qa-jobs-dlq", id: null, ownership: "unclaimed" }
+    });
+    expect(manifest.version).toBe(3);
+    expect(manifest.accountId).toBeNull();
     expect(manifest.cloudflareOAuth).toEqual({ mode: "official" });
+  });
+
+  it("pins generated Wrangler configuration to the recorded Cloudflare account", () => {
+    const manifest = createManifest("qa", {});
+    manifest.accountId = "a".repeat(32);
+
+    const config = createWranglerConfig(manifest);
+
+    expect(config.account_id).toBe("a".repeat(32));
+    expect(config.queues).toEqual({
+      producers: [{ binding: "HQBASE_JOBS", queue: "hqbase-qa-jobs" }],
+      consumers: [
+        {
+          queue: "hqbase-qa-jobs",
+          dead_letter_queue: "hqbase-qa-jobs-dlq",
+          max_batch_size: 10,
+          max_batch_timeout: 5,
+          max_retries: 3
+        }
+      ]
+    });
   });
 
   it("records customer-managed OAuth as non-secret deployment configuration", () => {
@@ -130,5 +153,6 @@ describe("HQBase installation resources", () => {
     });
     expect(official.cloudflareOAuth).toEqual({ mode: "official" });
     expect(official.authUrl).toBe("https://mail.example.com");
+    expect(official.version).toBe(3);
   });
 });
