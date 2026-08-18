@@ -12,6 +12,14 @@ describe("Mail API public artifacts", () => {
     expect(openApi.paths["/api/v1/messages"].get.security).toContainEqual({
       oauth2: ["mail:read"]
     });
+    expect(openApi.paths["/api/v1/changes"].get.security).toContainEqual({
+      oauth2: ["mail:read"]
+    });
+    expect(openApi.components.schemas.MessageChangePage.required).toEqual([
+      "changes",
+      "nextCursor",
+      "hasMore"
+    ]);
     expect(openApi.paths["/api/v1/messages/{id}/{action}"].post.security).toContainEqual({
       oauth2: ["mail:write"]
     });

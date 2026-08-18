@@ -151,6 +151,38 @@
       ]
     },
     {
+      "name": "Changes",
+      "item": [
+        {
+          "name": "Read message changes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/changes",
+              "variable": [],
+              "query": [
+                {
+                  "key": "cursor",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Opaque cursor from a checkpoint or previous changes page. Omit it only to create a new checkpoint."
+                },
+                {
+                  "key": "limit",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Maximum number of journal entries read for this page."
+                }
+              ]
+            },
+            "description": "Returns a bounded page of message upserts and deletion tombstones in journal order. A request without a cursor returns an empty checkpoint at the current high-water sequence."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
       "name": "Messages",
       "item": [
         {
