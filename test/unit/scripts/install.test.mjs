@@ -1,8 +1,13 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, rmSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { createWranglerConfig } from "../../../scripts/hqbase/config.mjs";
-import { cloudflareOAuthConfig, createManifest } from "../../../scripts/hqbase/install.mjs";
+import {
+  cloudflareOAuthConfig,
+  createManifest,
+  install
+} from "../../../scripts/hqbase/install.mjs";
+import { deploymentDir, writeManifest } from "../../../scripts/hqbase/manifest.mjs";
 import { updateOAuthManifest } from "../../../scripts/hqbase/oauth.mjs";
 
 const repositoryWranglerConfig = JSON.parse(
@@ -30,6 +35,37 @@ describe("HQBase installation resources", () => {
     expect(manifest.version).toBe(3);
     expect(manifest.accountId).toBeNull();
     expect(manifest.cloudflareOAuth).toEqual({ mode: "official" });
+  });
+
+  it("refuses a legacy manifest during an install dry run", () => {
+    const name = `legacy-dry-run-${process.pid}`;
+    const current = createManifest(name, {});
+    const legacy = {
+      ...current,
+      version: 2,
+      d1: { name: current.d1.name, id: null, created: false, reused: true },
+      r2: { bucket: current.r2.bucket, created: false, reused: true },
+      queue: {
+        name: current.queue.primary.name,
+        deadLetterName: current.queue.deadLetter.name,
+        created: false
+      }
+    };
+    delete legacy.accountId;
+    writeManifest(legacy);
+
+    try {
+      expect(() =>
+        install({
+          name,
+          "dry-run": true,
+          "skip-build": true,
+          "skip-deploy": true
+        })
+      ).toThrow(/version.*must be 3/);
+    } finally {
+      rmSync(deploymentDir(name), { force: true, recursive: true });
+    }
   });
 
   it("pins generated Wrangler configuration to the recorded Cloudflare account", () => {

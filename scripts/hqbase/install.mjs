@@ -1,6 +1,7 @@
 import { optionalBoolean, optionalString, requireString } from "./args.mjs";
 import { run } from "./command.mjs";
 import { writeWranglerConfig } from "./config.mjs";
+import { assertCurrentManifest, assertUnambiguousManifest } from "./lifecycle-manifest.mjs";
 import {
   configPath,
   ensureDeploymentDir,
@@ -33,6 +34,10 @@ export function install(flags, options = {}) {
   if (exists) {
     manifest = loadManifest(name);
     assertMatchingInstallFlags(manifest, flags);
+    if (dryRun) {
+      assertCurrentManifest(manifest);
+      assertUnambiguousManifest(manifest);
+    }
   } else {
     manifest = createManifest(name, {
       appDomain: optionalString(flags, "app-domain"),

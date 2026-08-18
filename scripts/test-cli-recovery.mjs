@@ -53,7 +53,7 @@ try {
   }, /D1 database .* is named .* not/);
   expectManifestFailure((value) => {
     value.r2.bucket = `${value.r2.bucket}-missing`;
-  }, /Command failed .* r2 bucket info .* missing/);
+  }, /Command failed .* r2 bucket info .*missing/);
   expectManifestFailure((value) => {
     value.queue.primary.id = "f".repeat(32);
   }, /queue .* has ID .* not/);
