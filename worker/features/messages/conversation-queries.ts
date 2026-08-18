@@ -2,12 +2,16 @@ import { nowIso } from "../../db/client";
 import { AppError } from "../../lib/errors";
 
 import type { MessageAction } from "./actions";
+import { decodeKeysetCursor, encodeKeysetCursor, type KeysetCursor } from "./keyset-cursor";
 import type {
   ConversationFolder,
   ConversationPage,
   ConversationRow,
   ConversationSummary
 } from "./types";
+
+/** Conversation cursors keep version 1. Message cursors use a different version tag. */
+const conversationCursorVersion = 1;
 
 export type ListConversationFilters = {
   cursor?: string | undefined;
@@ -200,10 +204,10 @@ export async function updateConversationAction(
   }
 
   const result = await db
-    .prepare(`UPDATE messages SET ${set} WHERE ${where.join(" AND ")}`)
+    .prepare(`UPDATE messages SET ${set} WHERE ${where.join(" AND ")} RETURNING id`)
     .bind(...bindings)
-    .run();
-  return { affected: result.meta.changes, threadId: selected.thread_id };
+    .all<{ id: string }>();
+  return { affected: result.results.length, threadId: selected.thread_id };
 }
 
 function mapConversationSummary(row: ConversationRow): ConversationSummary {
@@ -229,38 +233,16 @@ function mapConversationSummary(row: ConversationRow): ConversationSummary {
   };
 }
 
-type ConversationCursor = {
-  activityAt: string;
-  id: string;
-};
-
-function encodeConversationCursor(cursor: ConversationCursor): string {
-  return btoa(JSON.stringify([1, cursor.activityAt, cursor.id]))
-    .replaceAll("+", "-")
-    .replaceAll("/", "_")
-    .replace(/=+$/u, "");
+function encodeConversationCursor(cursor: KeysetCursor): string {
+  return encodeKeysetCursor(conversationCursorVersion, cursor);
 }
 
-function decodeConversationCursor(value: string): ConversationCursor {
-  try {
-    const base64 = value.replaceAll("-", "+").replaceAll("_", "/");
-    const padding = "=".repeat((4 - (base64.length % 4)) % 4);
-    const decoded: unknown = JSON.parse(atob(`${base64}${padding}`));
-    if (
-      !Array.isArray(decoded) ||
-      decoded.length !== 3 ||
-      decoded[0] !== 1 ||
-      typeof decoded[1] !== "string" ||
-      decoded[1].length === 0 ||
-      typeof decoded[2] !== "string" ||
-      decoded[2].length === 0
-    ) {
-      throw new Error("Invalid cursor payload.");
-    }
-    return { activityAt: decoded[1], id: decoded[2] };
-  } catch {
+function decodeConversationCursor(value: string): KeysetCursor {
+  const cursor = decodeKeysetCursor(conversationCursorVersion, value);
+  if (!cursor) {
     throw new AppError("INVALID_CONVERSATION_CURSOR", "Conversation cursor is invalid.", 400);
   }
+  return cursor;
 }
 
 function parseJsonList(value: string): string[] {
