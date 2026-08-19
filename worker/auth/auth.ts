@@ -22,6 +22,16 @@ export function createAuth(
     appName: "HQBase",
     basePath: "/api/auth",
     baseURL,
+    trustedOrigins: async (request) => {
+      if (!request) return [];
+      try {
+        const host = new URL(request.url).hostname;
+        if (host === "localhost" || host === "127.0.0.1") {
+          return ["http://localhost:5173", "http://127.0.0.1:5173"];
+        }
+      } catch {}
+      return [];
+    },
     database: env.DB,
     disabledPaths: ["/token"],
     secret: env.BETTER_AUTH_SECRET,

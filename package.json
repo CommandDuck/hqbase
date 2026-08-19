@@ -9,7 +9,7 @@
     "minimumVersion": "1.0.0"
   },
   "scripts": {
-    "dev": "pnpm build && wrangler dev --port 8787",
+    "dev": "node scripts/dev.mjs",
     "dev:vite": "vite --host 127.0.0.1 --port 5173",
     "dev:setup-ui": "vite --host 127.0.0.1 --port 5173 --open /__ui/setup?state=loading",
     "build": "vite build && node scripts/build-pwa.mjs && node scripts/check-setup-preview-boundary.mjs",
@@ -88,11 +88,10 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "hono": "^4.13.2",
-    "lucide-react": "^0.525.0",
     "postal-mime": "^2.5.2",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "react-resizable-panels": "^4.12.2",
+    "react-icons": "^5.7.0",
     "sanitize-html": "^2.17.6",
     "sonner": "^2.0.6",
     "tailwind-merge": "^3.3.1",

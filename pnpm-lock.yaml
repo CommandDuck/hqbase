@@ -80,9 +80,6 @@ importers:
       hono:
         specifier: ^4.13.2
         version: 4.13.2
-      lucide-react:
-        specifier: ^0.525.0
-        version: 0.525.0(react@19.2.7)
       postal-mime:
         specifier: ^2.5.2
         version: 2.7.5
@@ -92,9 +89,9 @@ importers:
       react-dom:
         specifier: ^19.1.0
         version: 19.2.7(react@19.2.7)
-      react-resizable-panels:
-        specifier: ^4.12.2
-        version: 4.12.2(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      react-icons:
+        specifier: ^5.7.0
+        version: 5.7.0(react@19.2.7)
       sanitize-html:
         specifier: ^2.17.6
         version: 2.17.6
@@ -2413,11 +2410,6 @@ packages:
   lru-cache@5.1.1:
     resolution: {integrity: sha512-KpNARQA3Iwv+jTA0utUVVbrh+Jlrr1Fv0e56GGzAFOXN7dk/FviaDW8LHmK52DlcH4WP2n6gI8vN1aesBFgo9w==}
 
-  lucide-react@0.525.0:
-    resolution: {integrity: sha512-Tm1txJ2OkymCGkvwoHt33Y2JpN5xucVq1slHcgE6Lk0WjDfjgKWor5CdVER8U6DvcfMwh4M8XxmpTiyzfmfDYQ==}
-    peerDependencies:
-      react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
-
   magic-string@0.30.21:
     resolution: {integrity: sha512-vd2F4YUyEXKGcLHoq+TEyCjxueSeHnFxyyjNp80yg0XV4vUhnDer/lvvlqM/arB5bXQN5K2/3oinyCRyx8T2CQ==}
 
@@ -2689,6 +2681,11 @@ packages:
     peerDependencies:
       react: ^19.2.7
 
+  react-icons@5.7.0:
+    resolution: {integrity: sha512-LBLy340Rzqy6+/yVhZKT3B/QpP1BZaesGqasf09HPOBzRarcDIFH0WwXlXQfE7q7ipxK4MSiC5DIBWURCny6fw==}
+    peerDependencies:
+      react: '*'
+
   react-refresh@0.17.0:
     resolution: {integrity: sha512-z6F7K9bV85EfseRCp2bzrpyQ0Gkw1uLoCel9XBVWPg/TjRj94SkJzUTGfOa4bs7iJvBWtQG0Wq7wnI0syw3EBQ==}
     engines: {node: '>=0.10.0'}
@@ -2712,12 +2709,6 @@ packages:
     peerDependenciesMeta:
       '@types/react':
         optional: true
-
-  react-resizable-panels@4.12.2:
-    resolution: {integrity: sha512-NwY5LCo4WrxVvDh0xoMML6EMLPONP/8ckKcIdpnojxexoatZdjLiRqLJQjQK5CPkd4SYiB/2M5BVrjZBQtOO7Q==}
-    peerDependencies:
-      react: ^18.0.0 || ^19.0.0
-      react-dom: ^18.0.0 || ^19.0.0
 
   react-style-singleton@2.2.3:
     resolution: {integrity: sha512-b6jSvxvVnyptAiLjbkWLE/lOnR4lfTtDAl+eUC7RZy+QQWc6wRzIV2CE6xBuMmDxc2qIihtDCZD5NPOFl7fRBQ==}
@@ -5193,10 +5184,6 @@ snapshots:
     dependencies:
       yallist: 3.1.1
 
-  lucide-react@0.525.0(react@19.2.7):
-    dependencies:
-      react: 19.2.7
-
   magic-string@0.30.21:
     dependencies:
       '@jridgewell/sourcemap-codec': 1.5.5
@@ -5456,6 +5443,10 @@ snapshots:
       react: 19.2.7
       scheduler: 0.27.0
 
+  react-icons@5.7.0(react@19.2.7):
+    dependencies:
+      react: 19.2.7
+
   react-refresh@0.17.0: {}
 
   react-remove-scroll-bar@2.3.8(@types/react@19.2.17)(react@19.2.7):
@@ -5476,11 +5467,6 @@ snapshots:
       use-sidecar: 1.1.3(@types/react@19.2.17)(react@19.2.7)
     optionalDependencies:
       '@types/react': 19.2.17
-
-  react-resizable-panels@4.12.2(react-dom@19.2.7(react@19.2.7))(react@19.2.7):
-    dependencies:
-      react: 19.2.7
-      react-dom: 19.2.7(react@19.2.7)
 
   react-style-singleton@2.2.3(@types/react@19.2.17)(react@19.2.7):
     dependencies:
