@@ -27,6 +27,7 @@ const messageActionSchema = z.enum([
   "star",
   "unstar",
   "archive",
+  "unarchive",
   "trash",
   "restore"
 ]);
@@ -180,7 +181,8 @@ function registerWriteTools(server: McpServer, env: WorkerEnv, principal: McpPri
   server.registerTool(
     "update_message",
     {
-      description: "Change read, starred, archived, trash, or restored state for one message.",
+      description:
+        "Change read, starred, archived, unarchived, trash, or restored state for one message.",
       inputSchema: {
         action: messageActionSchema,
         messageId: z.string().min(1).max(100)
@@ -200,7 +202,7 @@ function registerWriteTools(server: McpServer, env: WorkerEnv, principal: McpPri
     "update_conversation",
     {
       description:
-        "Change read, starred, archived, trash, or restored state across one conversation.",
+        "Change read, starred, archived, unarchived, trash, or restored state across one conversation.",
       inputSchema: {
         action: messageActionSchema,
         activeFolder: conversationFolderSchema,

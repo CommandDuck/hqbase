@@ -108,6 +108,27 @@ describe("conversation reader", () => {
     expect(html).not.toContain('aria-label="Trash conversation"');
   });
 
+  it("offers unarchive and trash in Archived", () => {
+    const html = renderToStaticMarkup(
+      <MessageDetail
+        activeFolder="archived"
+        defaultFromMailboxId="mbx_1"
+        mailboxes={[]}
+        messages={[{ ...firstMessage, folder: "archived" }]}
+        selectedId={firstMessage.id}
+        onAction={() => undefined}
+        onBack={() => undefined}
+        onRefresh={() => undefined}
+        onSent={() => undefined}
+      />
+    );
+
+    expect(html).toContain('aria-label="Unarchive conversation"');
+    expect(html).toContain('aria-label="Trash conversation"');
+    expect(html).not.toContain('aria-label="Archive conversation"');
+    expect(html).not.toContain('aria-label="Restore conversation"');
+  });
+
   it("uses list-only and conversation-only compact states", () => {
     const listHtml = renderToStaticMarkup(
       <InboxPage

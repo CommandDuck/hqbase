@@ -17,23 +17,25 @@ describe("buildMessageActionPatch", () => {
     expect(buildMessageActionPatch("trash", "now", inbound)).toMatchObject({ folder: "trash" });
   });
 
-  it("restores each message kind to its active folder", () => {
-    expect(buildMessageActionPatch("restore", "now", inbound)).toEqual({
-      archivedAt: null,
-      folder: "inbox",
-      trashedAt: null
-    });
-    expect(
-      buildMessageActionPatch("restore", "now", {
-        direction: "outbound",
-        isUnassigned: false
-      })
-    ).toMatchObject({ folder: "sent" });
-    expect(
-      buildMessageActionPatch("restore", "now", {
-        direction: "inbound",
-        isUnassigned: true
-      })
-    ).toMatchObject({ folder: "catchall" });
+  it("returns unarchived and restored messages to their active folders", () => {
+    for (const action of ["unarchive", "restore"] as const) {
+      expect(buildMessageActionPatch(action, "now", inbound)).toEqual({
+        archivedAt: null,
+        folder: "inbox",
+        trashedAt: null
+      });
+      expect(
+        buildMessageActionPatch(action, "now", {
+          direction: "outbound",
+          isUnassigned: false
+        })
+      ).toMatchObject({ folder: "sent" });
+      expect(
+        buildMessageActionPatch(action, "now", {
+          direction: "inbound",
+          isUnassigned: true
+        })
+      ).toMatchObject({ folder: "catchall" });
+    }
   });
 });

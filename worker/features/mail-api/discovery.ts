@@ -118,7 +118,7 @@ Use this exact OAuth resource and token audience: \`${apiBase}\`. MCP uses separ
 ## Permissions
 
 - \`mail:read\` — List visible mailboxes and conversations, search and open messages, render message HTML, and download attachments.
-- \`mail:write\` — Mark mail read or unread, add or remove stars, archive mail, move mail to Trash, restore mail, and trust remote images from a sender.
+- \`mail:write\` — Mark mail read or unread, add or remove stars, archive or unarchive mail, move mail to Trash, restore mail, and trust remote images from a sender.
 - \`mail:send\` — Create and manage drafts and attachments, send new messages, reply, and forward.
 - \`offline_access\` — Request an optional refresh token. This is not an API endpoint permission.
 

@@ -1,6 +1,14 @@
 import type { MessageDirection, MessageFolder } from "./types";
 
-export type MessageAction = "read" | "unread" | "star" | "unstar" | "archive" | "trash" | "restore";
+export type MessageAction =
+  | "read"
+  | "unread"
+  | "star"
+  | "unstar"
+  | "archive"
+  | "unarchive"
+  | "trash"
+  | "restore";
 
 export type MessageActionPatch = {
   folder?: MessageFolder;
@@ -28,6 +36,7 @@ export function buildMessageActionPatch(
       return { archivedAt: timestamp, folder: "archived", trashedAt: null };
     case "trash":
       return { trashedAt: timestamp, folder: "trash" };
+    case "unarchive":
     case "restore":
       return {
         archivedAt: null,

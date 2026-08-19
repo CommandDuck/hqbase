@@ -194,6 +194,17 @@ export async function updateConversationAction(
       bindings.unshift(timestamp, timestamp);
       where.push("folder IN ('inbox', 'catchall')");
       break;
+    case "unarchive":
+      set = `folder = CASE
+               WHEN mailbox_id IS NULL THEN 'catchall'
+               WHEN direction = 'outbound' THEN 'sent'
+               ELSE 'inbox'
+             END,
+             archived_at = NULL, trashed_at = NULL, updated_at = ?`;
+      bindings.unshift(timestamp);
+      where.push("folder = 'archived'");
+      if (input.activeFolder !== "archived") where.push("1 = 0");
+      break;
     case "trash":
       set = "folder = 'trash', trashed_at = ?, updated_at = ?";
       bindings.unshift(timestamp, timestamp);

@@ -17,6 +17,7 @@ const actions: readonly MessageAction[] = [
   "star",
   "unstar",
   "archive",
+  "unarchive",
   "trash",
   "restore"
 ];

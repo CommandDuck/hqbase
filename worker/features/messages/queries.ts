@@ -263,7 +263,10 @@ export async function updateMessageAction(
   if (!current) {
     throw new AppError("MESSAGE_NOT_FOUND", "Message not found.", 404);
   }
-  if (action === "restore" && current.folder !== "trash") {
+  if (
+    (action === "unarchive" && current.folder !== "archived") ||
+    (action === "restore" && current.folder !== "trash")
+  ) {
     return mapMessageSummary(current);
   }
 

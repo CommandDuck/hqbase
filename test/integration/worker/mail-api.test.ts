@@ -339,7 +339,22 @@ describe("HQBase Mail API v1", () => {
     expect(await attachment.text()).toBe("hello");
   });
 
-  it("restores trashed mail through the versioned action route", async () => {
+  it("unarchives and restores mail through the versioned action route", async () => {
+    const archived = await apiFetch("/api/v1/messages/msg_api/archive", writeToken, {
+      method: "POST"
+    });
+    expect(archived.status, await archived.clone().text()).toBe(200);
+    await expect(archived.json()).resolves.toMatchObject({ folder: "archived" });
+
+    const unarchived = await apiFetch("/api/v1/messages/msg_api/unarchive", writeToken, {
+      method: "POST"
+    });
+    expect(unarchived.status, await unarchived.clone().text()).toBe(200);
+    await expect(unarchived.json()).resolves.toMatchObject({ folder: "inbox" });
+    await expect(
+      env.DB.prepare("SELECT archived_at, trashed_at FROM messages WHERE id = 'msg_api'").first()
+    ).resolves.toEqual({ archived_at: null, trashed_at: null });
+
     const trashed = await apiFetch("/api/v1/messages/msg_api/trash", writeToken, {
       method: "POST"
     });

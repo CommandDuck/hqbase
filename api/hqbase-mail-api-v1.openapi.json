@@ -1023,7 +1023,16 @@
             "required": true,
             "schema": {
               "type": "string",
-              "enum": ["read", "unread", "star", "unstar", "archive", "trash", "restore"]
+              "enum": [
+                "read",
+                "unread",
+                "star",
+                "unstar",
+                "archive",
+                "unarchive",
+                "trash",
+                "restore"
+              ]
             }
           }
         ]
@@ -1242,7 +1251,16 @@
             "required": true,
             "schema": {
               "type": "string",
-              "enum": ["read", "unread", "star", "unstar", "archive", "trash", "restore"]
+              "enum": [
+                "read",
+                "unread",
+                "star",
+                "unstar",
+                "archive",
+                "unarchive",
+                "trash",
+                "restore"
+              ]
             }
           }
         ],

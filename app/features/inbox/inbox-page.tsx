@@ -157,6 +157,7 @@ export function InboxPage({
     void Promise.resolve(onRefresh()).catch(() => undefined);
     if (
       action === "archive" ||
+      action === "unarchive" ||
       action === "trash" ||
       action === "restore" ||
       (activeFolder === "starred" && action === "unstar")

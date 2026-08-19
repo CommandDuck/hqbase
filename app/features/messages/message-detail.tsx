@@ -37,7 +37,15 @@ type MessageDetailProps = {
   onSent: () => void;
 };
 
-type MessageAction = "read" | "unread" | "star" | "unstar" | "archive" | "trash" | "restore";
+type MessageAction =
+  | "read"
+  | "unread"
+  | "star"
+  | "unstar"
+  | "archive"
+  | "unarchive"
+  | "trash"
+  | "restore";
 
 type ThreadComposeMode = Extract<ComposeMode, "reply" | "forward">;
 
@@ -80,6 +88,7 @@ export function MessageDetail({
   );
 
   const isStarred = messages.some((message) => message.starredAt !== null);
+  const isArchived = activeFolder === "archived";
   const isTrash = activeFolder === "trash";
 
   async function applyAction(action: MessageAction, successMessage?: string): Promise<void> {
@@ -144,10 +153,19 @@ export function MessageDetail({
             ) : (
               <>
                 <IconButton
-                  label="Archive conversation"
-                  onClick={() => void applyAction("archive", "Conversation archived.")}
+                  label={isArchived ? "Unarchive conversation" : "Archive conversation"}
+                  onClick={() =>
+                    void applyAction(
+                      isArchived ? "unarchive" : "archive",
+                      isArchived ? "Conversation unarchived." : "Conversation archived."
+                    )
+                  }
                 >
-                  <PiArchive aria-hidden="true" className="pointer-events-none" />
+                  {isArchived ? (
+                    <PiArrowCounterClockwise aria-hidden="true" className="pointer-events-none" />
+                  ) : (
+                    <PiArchive aria-hidden="true" className="pointer-events-none" />
+                  )}
                 </IconButton>
                 <IconButton
                   label="Trash conversation"

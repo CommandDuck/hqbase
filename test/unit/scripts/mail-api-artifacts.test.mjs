@@ -33,7 +33,7 @@ describe("Mail API public artifacts", () => {
       openApi.paths["/api/v1/messages/{id}/{action}"].post.parameters.find(
         (parameter) => parameter.name === "action"
       ).schema.enum
-    ).toContain("restore");
+    ).toEqual(expect.arrayContaining(["restore", "unarchive"]));
     expect(
       openApi.paths["/api/v1/drafts/{id}/attachments"].post.requestBody.content[
         "multipart/form-data"

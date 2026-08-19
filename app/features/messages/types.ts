@@ -36,6 +36,7 @@ export type ConversationAction =
   | "star"
   | "unstar"
   | "archive"
+  | "unarchive"
   | "trash"
   | "restore";
 
