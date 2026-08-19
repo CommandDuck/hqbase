@@ -2,8 +2,8 @@ import { enforceRateLimit } from "@worker/security/rate-limit";
 import { describe, expect, it, vi } from "vitest";
 
 function databaseReturning(requestCount: number): D1Database {
-  const first = vi.fn().mockResolvedValue({ request_count: requestCount });
-  const bind = vi.fn().mockReturnValue({ first });
+  const all = vi.fn().mockResolvedValue({ results: [{ request_count: requestCount }] });
+  const bind = vi.fn().mockReturnValue({ all });
   const prepare = vi.fn().mockReturnValue({ bind });
   return { prepare } as unknown as D1Database;
 }

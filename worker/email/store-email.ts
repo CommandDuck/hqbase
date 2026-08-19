@@ -1,4 +1,7 @@
+import { sql } from "drizzle-orm";
+
 import { newId, nowIso } from "../db/client";
+import { getRow } from "../db/drizzle";
 import { findAddressIdentity } from "../features/mailboxes/address-queries";
 import { findMailboxByAddress } from "../features/mailboxes/queries";
 import { getMessageDetail, insertAttachment, insertMessage } from "../features/messages/queries";
@@ -113,10 +116,10 @@ export async function storeInboundEmail(
 }
 
 async function findDuplicate(db: D1Database, dedupeKey: string): Promise<MessageSummary | null> {
-  const row = await db
-    .prepare("SELECT id FROM messages WHERE dedupe_key = ?")
-    .bind(dedupeKey)
-    .first<{ id: string }>();
+  const row = await getRow<{ id: string }>(
+    db,
+    sql`SELECT id FROM messages WHERE dedupe_key = ${dedupeKey}`
+  );
 
   if (!row) {
     return null;

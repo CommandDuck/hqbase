@@ -1,8 +1,11 @@
+import { sql } from "drizzle-orm";
+
 import {
   canAccessUnassignedMail,
   type MailboxAccessLevel,
   requireMailboxAccess
 } from "../../auth/mailbox-access";
+import { getRow } from "../../db/drizzle";
 import { AppError } from "../../lib/errors";
 import type { WorkspaceRole } from "../../lib/validation";
 
@@ -18,10 +21,10 @@ export async function requireMessageAccess(
   messageId: string,
   required: MailboxAccessLevel
 ): Promise<MailboxAccessLevel> {
-  const target = await db
-    .prepare("SELECT mailbox_id, is_unassigned FROM messages WHERE id = ?")
-    .bind(messageId)
-    .first<MessageAccessTarget>();
+  const target = await getRow<MessageAccessTarget>(
+    db,
+    sql`SELECT mailbox_id, is_unassigned FROM messages WHERE id = ${messageId}`
+  );
   return requireAccessTarget(db, userId, role, target, required, "MESSAGE_NOT_FOUND");
 }
 
@@ -32,15 +35,13 @@ export async function requireAttachmentAccess(
   attachmentId: string,
   required: MailboxAccessLevel
 ): Promise<MailboxAccessLevel> {
-  const target = await db
-    .prepare(
-      `SELECT message.mailbox_id, message.is_unassigned
+  const target = await getRow<MessageAccessTarget>(
+    db,
+    sql`SELECT message.mailbox_id, message.is_unassigned
        FROM message_attachments attachment
        JOIN messages message ON message.id = attachment.message_id
-       WHERE attachment.id = ?`
-    )
-    .bind(attachmentId)
-    .first<MessageAccessTarget>();
+       WHERE attachment.id = ${attachmentId}`
+  );
   return requireAccessTarget(db, userId, role, target, required, "ATTACHMENT_NOT_FOUND");
 }
 
