@@ -2,22 +2,41 @@
 
 ## 1.2.0
 
+### New
+
 - Refresh the app with responsive rail and drawer navigation, canonical `/mail/*` routes, Inter
   typography, full-page conversation reading, and MCP and Agent Skill settings.
-- Add cursor pagination for message listings and a durable `/api/v1/changes` feed with bounded
-  pages, deletion tombstones, and access-change records for reliable client synchronization.
+- Add opaque cursor pagination for message listings, with stable ordering and bounded pages.
+- Add a durable `/api/v1/changes` feed with deletion tombstones and access-change records for
+  reliable client synchronization.
 - Make terminal installation and removal resumable with atomic resource checkpoints, live identity
   verification, preservation of reused resources, and fail-closed recovery for ambiguous state.
-- Keep unassigned catch-all mail owner-only while making it visible through REST, MCP, unread
-  counts, notifications, and the changes feed without exposing deleted-mailbox history.
-- Add forwarding, unarchive, and restore across the app, REST, and MCP; preserve attachment media
-  types; allow safe refresh-token retries; and correct access checks for sending and replies.
+- Add forward, unarchive, and restore actions across the app, REST, and MCP, including optional
+  forwarding of the original message's attachments.
+
+### Fixed
+
+- Fix catch-all messages being absent from conversations, REST, MCP, unread counts, push
+  notifications, and the changes feed. Catch-all mail remains owner-only, and messages from a
+  deleted mailbox do not become visible as catch-all mail.
+- Return restored and unarchived messages to Inbox, Sent, or Catch-all according to their direction
+  and assignment instead of moving every message to one folder.
 - Reopen saved reply and forward drafts with their accessible conversation, preserve the exact
   target, keep the composer visible, and block sending when the target is missing or inaccessible.
-- Block direct access to Better Auth admin endpoints and show the requesting OAuth client's ID and
-  homepage on the consent page so people can verify the client before approval.
-- Clarify native OAuth registration and conversation action identifiers in the generated Agent
-  Skill, OpenAPI document, and Postman collection.
+- Correct send, reply, and forward authorization so valid mailbox sends work and source-message
+  access is checked against the correct resource.
+- Allow refresh-token retries during the configured rotation window without invalidating the token
+  family.
+- Preserve attachment media types through draft upload and forwarding, and document the attachment
+  size limits in the public API contract.
+- Block direct HTTP access to Better Auth admin endpoints so an admin cannot promote themselves to
+  owner or replace an owner's password outside HQBase's owner-only controls.
+- Show the requesting OAuth client's ID and homepage on the consent page, and clarify native PKCE
+  registration so people can verify the client before approval.
+- Prevent Reply from addressing the workspace sender, repair compact Settings navigation, and wait
+  for mail actions to finish before showing success.
+- Clarify that conversation action routes take the conversation's latest message ID, not its thread
+  ID, in the Agent Skill, OpenAPI document, and Postman collection.
 
 ## 1.1.2
 
