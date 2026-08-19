@@ -210,6 +210,22 @@ describe("operator destroy scopes", () => {
     expect(removeQueue).toBeGreaterThan(removeWorker);
   });
 
+  it("refuses to update a manifest from another deployment directory", () => {
+    const input = manifest();
+    input.name = "other";
+    input.worker.deployed = false;
+    const checkpoints = [];
+
+    expect(() =>
+      recordWorkerDeployedForConfig(configPath("qa"), input.worker.name, {
+        loadManifest: () => input,
+        writeManifest: (next) => checkpoints.push(structuredClone(next))
+      })
+    ).toThrow(/manifest name "other" does not match deployment "qa"/);
+    expect(input.worker.deployed).toBe(false);
+    expect(checkpoints).toEqual([]);
+  });
+
   it("keeps completed cleanup checkpoints when a later deletion fails", () => {
     const input = manifest();
     input.worker.deployed = false;

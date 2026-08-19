@@ -40,12 +40,8 @@ export {
 export async function deploy(options = {}) {
   const configFile = resolve(options.configFile ?? resolve(root, "wrangler.jsonc"));
   if (process.env.HQBASE_FORCE_SOURCE_DEPLOY === "1") {
-    const sourceConfigFile = resolve(root, "wrangler.jsonc");
-    const config = JSON.parse(readFileSync(sourceConfigFile, "utf8"));
-    return sourceDeploy(root, {
-      recordWorkerDeployed: () =>
-        recordWorkerDeployedForConfig(sourceConfigFile, workerNameFromConfig(config))
-    });
+    assertSourceDeployConfig(configFile);
+    return sourceDeploy(root);
   }
   const { bytes, manifest } = await loadVerifiedRelease({
     artifactFile: options.artifactFile ?? process.env.HQBASE_RELEASE_ARTIFACT_FILE,
@@ -176,11 +172,24 @@ export async function deploy(options = {}) {
   }
 }
 
-function sourceDeploy(cwd, options = {}) {
+export function assertSourceDeployConfig(
+  configFile,
+  sourceConfigFile = resolve(root, "wrangler.jsonc")
+) {
+  const selectedConfig = resolve(configFile);
+  const repositoryConfig = resolve(sourceConfigFile);
+  if (selectedConfig !== repositoryConfig) {
+    throw new Error(
+      "HQBASE_FORCE_SOURCE_DEPLOY supports only the repository-root wrangler.jsonc. Unset it before deploying a managed installation."
+    );
+  }
+  return repositoryConfig;
+}
+
+function sourceDeploy(cwd) {
   run("pnpm", ["build"], cwd);
   run("pnpm", ["db:migrate:remote"], cwd);
   deploySource(cwd);
-  options.recordWorkerDeployed?.();
   run("pnpm", ["hqbase", "postdeploy"], cwd);
 }
 
