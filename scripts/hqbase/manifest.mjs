@@ -88,6 +88,11 @@ export function recordWorkerDeployedForConfig(configFile, workerName, options = 
 
   const manifest = (options.loadManifest ?? loadManifest)(name);
   assertCurrentManifest(manifest);
+  if (manifest.name !== name) {
+    throw new Error(
+      `Refusing to record Worker deployment: manifest name "${manifest.name}" does not match deployment "${name}".`
+    );
+  }
   if (manifest.worker.name !== workerName) {
     throw new Error(
       `Refusing to record Worker deployment: manifest Worker "${manifest.worker.name}" does not match deployed Worker "${workerName}".`
