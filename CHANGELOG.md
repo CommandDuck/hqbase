@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.2.0
+
+- Refresh the app with responsive rail and drawer navigation, canonical `/mail/*` routes, Inter
+  typography, full-page conversation reading, and MCP and Agent Skill settings.
+- Add cursor pagination for message listings and a durable `/api/v1/changes` feed with bounded
+  pages, deletion tombstones, and access-change records for reliable client synchronization.
+- Make terminal installation and removal resumable with atomic resource checkpoints, live identity
+  verification, preservation of reused resources, and fail-closed recovery for ambiguous state.
+- Keep unassigned catch-all mail owner-only while making it visible through REST, MCP, unread
+  counts, notifications, and the changes feed without exposing deleted-mailbox history.
+- Add forwarding, unarchive, and restore across the app, REST, and MCP; preserve attachment media
+  types; allow safe refresh-token retries; and correct access checks for sending and replies.
+- Reopen saved reply and forward drafts with their accessible conversation, preserve the exact
+  target, keep the composer visible, and block sending when the target is missing or inaccessible.
+- Block direct access to Better Auth admin endpoints and show the requesting OAuth client's ID and
+  homepage on the consent page so people can verify the client before approval.
+- Clarify native OAuth registration and conversation action identifiers in the generated Agent
+  Skill, OpenAPI document, and Postman collection.
+
 ## 1.1.2
 
 - Add secure self-service password recovery from the sign-in page. Recovery links expire after
