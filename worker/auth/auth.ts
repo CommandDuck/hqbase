@@ -95,6 +95,7 @@ export function createAuth(
         disableJwtPlugin: true,
         grantTypes: ["authorization_code", "refresh_token"],
         loginPage: "/",
+        refreshTokenReuseInterval: 30,
         prefix: {
           clientSecret: "hqb_client_",
           opaqueAccessToken: "hqb_access_",

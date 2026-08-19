@@ -483,6 +483,30 @@ describe("HQBase MCP server", () => {
         "/mcp/full"
       )
     ).resolves.toMatchObject({ affected: 1, threadId: "thr_mcp_allowed" });
+    await expect(
+      callTool(
+        "update_conversation",
+        {
+          action: "archive",
+          activeFolder: "inbox",
+          messageId: "msg_mcp_allowed"
+        },
+        fullToken,
+        "/mcp/full"
+      )
+    ).resolves.toMatchObject({ affected: 1, threadId: "thr_mcp_allowed" });
+    await expect(
+      callTool(
+        "update_conversation",
+        {
+          action: "unarchive",
+          activeFolder: "archived",
+          messageId: "msg_mcp_allowed"
+        },
+        fullToken,
+        "/mcp/full"
+      )
+    ).resolves.toMatchObject({ affected: 1, threadId: "thr_mcp_allowed" });
   });
 });
 

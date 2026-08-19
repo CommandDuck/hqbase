@@ -25,7 +25,16 @@ export { isSafeInlineImage } from "./inline-media";
 
 export const messageRoutes = new Hono<HonoApp>();
 
-const actions: readonly MessageAction[] = ["read", "unread", "star", "unstar", "archive", "trash"];
+const actions: readonly MessageAction[] = [
+  "read",
+  "unread",
+  "star",
+  "unstar",
+  "archive",
+  "unarchive",
+  "trash",
+  "restore"
+];
 
 messageRoutes.get("/", async (c) => {
   const auth = await requireMailApiContext(c.env, c.req.raw, "mail:read");

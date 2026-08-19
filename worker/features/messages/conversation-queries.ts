@@ -13,7 +13,8 @@ import type {
   ConversationFolder,
   ConversationPage,
   ConversationRow,
-  ConversationSummary
+  ConversationSummary,
+  MessageFolder
 } from "./types";
 
 /** Conversation cursors keep version 1. Message cursors use a different version tag. */
@@ -165,12 +166,17 @@ export async function updateConversationAction(
 
   const timestamp = nowIso();
   const conditions: SQL[] = [eq(messages.threadId, selected.thread_id), scope];
+  const restoredFolder = sql.raw(`CASE
+    WHEN mailbox_id IS NULL THEN 'catchall'
+    WHEN direction = 'outbound' THEN 'sent'
+    ELSE 'inbox'
+  END`);
   const set: {
-    archivedAt?: string;
-    folder?: "archived" | "trash";
+    archivedAt?: string | null;
+    folder?: MessageFolder | SQL;
     readAt?: string | null;
     starredAt?: string | null;
-    trashedAt?: string;
+    trashedAt?: string | null;
     updatedAt: string;
   } = { updatedAt: timestamp };
 
@@ -194,6 +200,13 @@ export async function updateConversationAction(
       set.archivedAt = timestamp;
       conditions.push(inArray(messages.folder, ["inbox", "catchall"]));
       break;
+    case "unarchive":
+      set.folder = restoredFolder;
+      set.archivedAt = null;
+      set.trashedAt = null;
+      conditions.push(eq(messages.folder, "archived"));
+      if (input.activeFolder !== "archived") conditions.push(sql`1 = 0`);
+      break;
     case "trash":
       set.folder = "trash";
       set.trashedAt = timestamp;
@@ -202,6 +215,13 @@ export async function updateConversationAction(
       } else {
         conditions.push(eq(messages.folder, input.activeFolder));
       }
+      break;
+    case "restore":
+      set.folder = restoredFolder;
+      set.archivedAt = null;
+      set.trashedAt = null;
+      conditions.push(eq(messages.folder, "trash"));
+      if (input.activeFolder !== "trash") conditions.push(sql`1 = 0`);
       break;
   }
 

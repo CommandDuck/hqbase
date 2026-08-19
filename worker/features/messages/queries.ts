@@ -249,9 +249,18 @@ export async function updateMessageAction(
   if (!current) {
     throw new AppError("MESSAGE_NOT_FOUND", "Message not found.", 404);
   }
+  if (
+    (action === "unarchive" && current.folder !== "archived") ||
+    (action === "restore" && current.folder !== "trash")
+  ) {
+    return mapMessageSummary(current);
+  }
 
   const timestamp = nowIso();
-  const patch = buildMessageActionPatch(action, timestamp);
+  const patch = buildMessageActionPatch(action, timestamp, {
+    direction: current.direction,
+    isUnassigned: current.is_unassigned === 1
+  });
   await createDatabase(db)
     .update(messagesTable)
     .set({

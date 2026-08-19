@@ -1,11 +1,19 @@
 import * as React from "react";
-import { PiArchive, PiArrowLeft, PiEnvelopeOpen, PiStar, PiTrash } from "react-icons/pi";
+import {
+  PiArchive,
+  PiArrowCounterClockwise,
+  PiArrowLeft,
+  PiEnvelopeOpen,
+  PiStar,
+  PiTrash
+} from "react-icons/pi";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { PullToRefresh } from "@/components/ui/pull-to-refresh";
 import type { ComposeMode } from "@/features/compose/compose-state";
 import type { Mailbox } from "@/features/mailboxes/types";
+import type { MailFolderId } from "@/lib/routes";
 import { ConversationMessages } from "./conversation-messages";
 import type { MessageDetail as MessageDetailType } from "./types";
 
@@ -14,6 +22,7 @@ const ComposeDialog = React.lazy(() =>
 );
 
 type MessageDetailProps = {
+  activeFolder?: MailFolderId;
   defaultFromMailboxId: string | null;
   error?: string | null;
   isLoading?: boolean;
@@ -28,7 +37,15 @@ type MessageDetailProps = {
   onSent: () => void;
 };
 
-type MessageAction = "read" | "unread" | "star" | "unstar" | "archive" | "trash";
+type MessageAction =
+  | "read"
+  | "unread"
+  | "star"
+  | "unstar"
+  | "archive"
+  | "unarchive"
+  | "trash"
+  | "restore";
 
 type ThreadComposeMode = Extract<ComposeMode, "reply" | "forward">;
 
@@ -38,6 +55,7 @@ type ThreadComposeState = {
 };
 
 export function MessageDetail({
+  activeFolder,
   defaultFromMailboxId,
   error = null,
   isLoading = false,
@@ -70,6 +88,8 @@ export function MessageDetail({
   );
 
   const isStarred = messages.some((message) => message.starredAt !== null);
+  const isArchived = activeFolder === "archived";
+  const isTrash = activeFolder === "trash";
 
   async function applyAction(action: MessageAction, successMessage?: string): Promise<void> {
     try {
@@ -123,18 +143,38 @@ export function MessageDetail({
                 className={`pointer-events-none ${isStarred ? "fill-star" : ""}`}
               />
             </IconButton>
-            <IconButton
-              label="Archive conversation"
-              onClick={() => void applyAction("archive", "Conversation archived.")}
-            >
-              <PiArchive aria-hidden="true" className="pointer-events-none" />
-            </IconButton>
-            <IconButton
-              label="Trash conversation"
-              onClick={() => void applyAction("trash", "Conversation moved to Trash.")}
-            >
-              <PiTrash aria-hidden="true" className="pointer-events-none" />
-            </IconButton>
+            {isTrash ? (
+              <IconButton
+                label="Restore conversation"
+                onClick={() => void applyAction("restore", "Conversation restored.")}
+              >
+                <PiArrowCounterClockwise aria-hidden="true" className="pointer-events-none" />
+              </IconButton>
+            ) : (
+              <>
+                <IconButton
+                  label={isArchived ? "Unarchive conversation" : "Archive conversation"}
+                  onClick={() =>
+                    void applyAction(
+                      isArchived ? "unarchive" : "archive",
+                      isArchived ? "Conversation unarchived." : "Conversation archived."
+                    )
+                  }
+                >
+                  {isArchived ? (
+                    <PiArrowCounterClockwise aria-hidden="true" className="pointer-events-none" />
+                  ) : (
+                    <PiArchive aria-hidden="true" className="pointer-events-none" />
+                  )}
+                </IconButton>
+                <IconButton
+                  label="Trash conversation"
+                  onClick={() => void applyAction("trash", "Conversation moved to Trash.")}
+                >
+                  <PiTrash aria-hidden="true" className="pointer-events-none" />
+                </IconButton>
+              </>
+            )}
           </div>
         </div>
       </div>
