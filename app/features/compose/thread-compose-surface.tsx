@@ -118,6 +118,7 @@ export function ThreadComposeSurface({
           form={formId}
           size="icon"
           type="submit"
+          variant="liquidGlass"
         >
           <PiPaperPlaneTilt aria-hidden="true" className="pointer-events-none" />
         </Button>

@@ -88,6 +88,7 @@ export function ComposeForm(props: ComposeFormProps): React.ReactElement {
                 className={cn(props.presentation === "thread" && "hidden lg:inline-flex")}
                 disabled={props.sendDisabled}
                 type="submit"
+                variant="liquidGlass"
               >
                 {props.isPending ? (
                   "Sending"
