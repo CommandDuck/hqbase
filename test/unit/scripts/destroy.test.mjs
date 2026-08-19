@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { destroyPlan, destroyResources, destroyTargets } from "../../../scripts/hqbase/destroy.mjs";
+import { configPath, recordWorkerDeployedForConfig } from "../../../scripts/hqbase/manifest.mjs";
 
 const scopes = ["worker", "data", "storage", "state", "domain", "all"];
 
@@ -176,6 +177,37 @@ describe("operator destroy scopes", () => {
     );
     expect(detach).toBeGreaterThanOrEqual(0);
     expect(removeWorker).toBeGreaterThan(detach);
+  });
+
+  it("records a direct signed deploy before deleting its bound queues", () => {
+    const input = manifest();
+    input.worker.deployed = false;
+    const checkpoints = [];
+
+    recordWorkerDeployedForConfig(configPath(input.name), input.worker.name, {
+      loadManifest: () => input,
+      writeManifest: (next) => checkpoints.push(structuredClone(next))
+    });
+
+    const commands = [];
+    destroyResources("all", input, {
+      checkpoint: () => {},
+      runCommand: (_command, args) => {
+        commands.push(args.slice(2));
+        return "";
+      }
+    });
+
+    const removeWorker = commands.findIndex(
+      (args) => args.join(" ") === "delete hqbase-qa --force"
+    );
+    const removeQueue = commands.findIndex(
+      (args) => args.join(" ") === "queues delete hqbase-jobs"
+    );
+    expect(checkpoints).toHaveLength(1);
+    expect(checkpoints[0].worker.deployed).toBe(true);
+    expect(removeWorker).toBeGreaterThanOrEqual(0);
+    expect(removeQueue).toBeGreaterThan(removeWorker);
   });
 
   it("keeps completed cleanup checkpoints when a later deletion fails", () => {

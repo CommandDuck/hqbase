@@ -9,7 +9,7 @@ const workflow = readFileSync(
 describe("staging workflow lifecycle record", () => {
   it("records the reviewed Worker deploy before cleanup", () => {
     const deploy = workflow.indexOf("pnpm exec wrangler deploy --config");
-    const checkpoint = workflow.indexOf("manifest.worker.deployed = true");
+    const checkpoint = workflow.indexOf("recordWorkerDeployedForConfig");
     const cleanup = workflow.indexOf('pnpm hqbase destroy --name "$DEPLOYMENT_NAME"');
 
     expect(deploy).toBeGreaterThan(-1);
