@@ -11,7 +11,16 @@ import { conversationFolders } from "./types";
 
 export const conversationRoutes = new Hono<HonoApp>();
 
-const actions: readonly MessageAction[] = ["read", "unread", "star", "unstar", "archive", "trash"];
+const actions: readonly MessageAction[] = [
+  "read",
+  "unread",
+  "star",
+  "unstar",
+  "archive",
+  "unarchive",
+  "trash",
+  "restore"
+];
 const folderSchema = z.enum(conversationFolders);
 const cursorSchema = z.string().min(1).max(512).optional();
 const actionBodySchema = z.object({ folder: folderSchema });

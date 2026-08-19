@@ -135,12 +135,56 @@ describe("conversation persistence", () => {
 
     await expect(
       updateConversationAction(env.DB, {
+        action: "unarchive",
+        activeFolder: "archived",
+        scope: { includeUnassigned: false, mailboxIds: ["mbx_conversations"] },
+        messageId: "msg_root_a"
+      })
+    ).resolves.toMatchObject({ affected: 1 });
+    await expect(
+      env.DB.prepare("SELECT folder, archived_at, trashed_at FROM messages WHERE id = ?")
+        .bind("msg_root_a")
+        .first()
+    ).resolves.toEqual({ archived_at: null, folder: "inbox", trashed_at: null });
+    await expect(
+      updateConversationAction(env.DB, {
+        action: "unarchive",
+        activeFolder: "inbox",
+        scope: { includeUnassigned: false, mailboxIds: ["mbx_conversations"] },
+        messageId: "msg_root_a"
+      })
+    ).resolves.toMatchObject({ affected: 0 });
+
+    await expect(
+      updateConversationAction(env.DB, {
         action: "trash",
         activeFolder: "sent",
         scope: { includeUnassigned: false, mailboxIds: ["mbx_conversations"] },
         messageId: "msg_root_a"
       })
     ).resolves.toMatchObject({ affected: 1 });
+
+    await expect(
+      updateConversationAction(env.DB, {
+        action: "restore",
+        activeFolder: "trash",
+        scope: { includeUnassigned: false, mailboxIds: ["mbx_conversations"] },
+        messageId: "msg_reply_a"
+      })
+    ).resolves.toMatchObject({ affected: 1 });
+    await expect(
+      env.DB.prepare("SELECT folder, archived_at, trashed_at FROM messages WHERE id = ?")
+        .bind("msg_reply_a")
+        .first()
+    ).resolves.toEqual({ archived_at: null, folder: "sent", trashed_at: null });
+    await expect(
+      updateConversationAction(env.DB, {
+        action: "restore",
+        activeFolder: "sent",
+        scope: { includeUnassigned: false, mailboxIds: ["mbx_conversations"] },
+        messageId: "msg_reply_a"
+      })
+    ).resolves.toMatchObject({ affected: 0 });
   });
 
   it("pages conversations with a stable opaque cursor", async () => {

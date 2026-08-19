@@ -267,7 +267,7 @@ describe("HQBase Mail API v1", () => {
       "Do not open, navigate to, or interact with the verification URL in Cloud Browser"
     );
     expect(instructions).toContain("The person must open it themselves in a browser they control");
-    expect(instructions).toContain("Sending and replying are not idempotent");
+    expect(instructions).toContain("Sending, replying, and forwarding are not idempotent");
     expect(instructions).toContain(
       "get a checkpoint from `GET https://hqbase.test/api/v1/changes`"
     );
@@ -337,6 +337,94 @@ describe("HQBase Mail API v1", () => {
     const attachment = await apiFetch("/api/v1/attachments/att_api", readToken);
     expect(attachment.status).toBe(200);
     expect(await attachment.text()).toBe("hello");
+  });
+
+  it("unarchives and restores mail through the versioned action route", async () => {
+    const archived = await apiFetch("/api/v1/messages/msg_api/archive", writeToken, {
+      method: "POST"
+    });
+    expect(archived.status, await archived.clone().text()).toBe(200);
+    await expect(archived.json()).resolves.toMatchObject({ folder: "archived" });
+
+    const unarchived = await apiFetch("/api/v1/messages/msg_api/unarchive", writeToken, {
+      method: "POST"
+    });
+    expect(unarchived.status, await unarchived.clone().text()).toBe(200);
+    await expect(unarchived.json()).resolves.toMatchObject({ folder: "inbox" });
+    await expect(
+      env.DB.prepare("SELECT archived_at, trashed_at FROM messages WHERE id = 'msg_api'").first()
+    ).resolves.toEqual({ archived_at: null, trashed_at: null });
+
+    const trashed = await apiFetch("/api/v1/messages/msg_api/trash", writeToken, {
+      method: "POST"
+    });
+    expect(trashed.status, await trashed.clone().text()).toBe(200);
+    await expect(trashed.json()).resolves.toMatchObject({ folder: "trash" });
+
+    const restored = await apiFetch("/api/v1/messages/msg_api/restore", writeToken, {
+      method: "POST"
+    });
+    expect(restored.status, await restored.clone().text()).toBe(200);
+    await expect(restored.json()).resolves.toMatchObject({ folder: "inbox" });
+    await expect(
+      env.DB.prepare("SELECT archived_at, trashed_at FROM messages WHERE id = 'msg_api'").first()
+    ).resolves.toEqual({ archived_at: null, trashed_at: null });
+  });
+
+  it("keeps a draft attachment's multipart MIME type", async () => {
+    const created = await apiFetch("/api/v1/drafts", fullToken, {
+      body: JSON.stringify({ mailboxId: "mbx_api", from: "support@example.com" }),
+      headers: { "content-type": "application/json" },
+      method: "POST"
+    });
+    expect(created.status, await created.clone().text()).toBe(201);
+    const draft = (await created.json()) as { id: string };
+    const form = new FormData();
+    form.set(
+      "file",
+      new File([new Uint8Array([137, 80, 78, 71])], "pixel.png", {
+        type: "image/png"
+      })
+    );
+
+    const uploaded = await apiFetch(`/api/v1/drafts/${draft.id}/attachments`, fullToken, {
+      body: form,
+      method: "POST"
+    });
+    expect(uploaded.status, await uploaded.clone().text()).toBe(201);
+    await expect(uploaded.json()).resolves.toMatchObject({
+      contentType: "image/png",
+      filename: "pixel.png",
+      sizeBytes: 4
+    });
+
+    const stored = await apiFetch(`/api/v1/drafts/${draft.id}`, fullToken);
+    await expect(stored.json()).resolves.toMatchObject({
+      attachments: [{ contentType: "image/png", filename: "pixel.png", sizeBytes: 4 }]
+    });
+  });
+
+  it("forwards an accessible message with its original attachments", async () => {
+    const response = await apiFetch("/api/v1/forward", fullToken, {
+      body: JSON.stringify({
+        messageId: "msg_api",
+        from: "support@example.com",
+        to: ["person@example.net"],
+        text: "Please review.",
+        includeOriginalAttachments: true
+      }),
+      headers: { "content-type": "application/json" },
+      method: "POST"
+    });
+    expect(response.status, await response.clone().text()).toBe(201);
+    const forwarded = (await response.json()) as { id: string };
+    const detail = await apiFetch(`/api/v1/messages/${forwarded.id}`, readToken);
+    await expect(detail.json()).resolves.toMatchObject({
+      attachments: [{ contentType: "text/plain", filename: "hello.txt", sizeBytes: 5 }],
+      folder: "sent",
+      hasAttachments: true,
+      subject: "Fwd: API message"
+    });
   });
 
   it("limits unassigned mail to authenticated owners", async () => {
