@@ -64,6 +64,9 @@ export function App(): React.ReactElement {
     selectedDraftId === null
       ? null
       : (draftState.drafts.find((draft) => draft.id === selectedDraftId) ?? null);
+  const selectedDraftHasContext = Boolean(
+    selectedDraft?.replyToMessageId ?? selectedDraft?.forwardOfMessageId
+  );
   const contentMailboxes = React.useMemo(
     () => mailboxes.filter((mailbox) => mailbox.accessLevel !== null),
     [mailboxes]
@@ -241,6 +244,24 @@ export function App(): React.ReactElement {
                 updateProgress={updateMonitor.progress}
                 updateStatus={updateMonitor.status}
               />
+            ) : activeFolder === "drafts" && selectedDraft && selectedDraftHasContext ? (
+              <React.Suspense
+                fallback={
+                  <div className="grid h-full place-items-center text-sm text-muted-foreground">
+                    Opening draft…
+                  </div>
+                }
+              >
+                <DraftComposeDialog
+                  draft={selectedDraft}
+                  mailboxes={contentMailboxes}
+                  onDraftsChange={() => void draftState.refresh().catch(() => undefined)}
+                  onOpenChange={(open) => {
+                    if (!open) navigate({ kind: "drafts", draftId: null });
+                  }}
+                  onSent={() => void mailSync.refresh().catch(() => undefined)}
+                />
+              </React.Suspense>
             ) : activeFolder === "drafts" ? (
               <DraftsPage
                 drafts={draftState.drafts}
@@ -290,7 +311,7 @@ export function App(): React.ReactElement {
           />
         </React.Suspense>
       ) : null}
-      {selectedDraft ? (
+      {selectedDraft && !selectedDraftHasContext ? (
         <React.Suspense fallback={null}>
           <DraftComposeDialog
             draft={selectedDraft}
