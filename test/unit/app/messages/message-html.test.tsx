@@ -90,7 +90,7 @@ describe("message HTML view", () => {
 
     expect(html).toContain('aria-label="Show quoted message history"');
     expect(html).toContain('aria-expanded="false"');
-    expect(html).toContain("...");
+    expect(html.match(/data-quoted-content-dot/g)).toHaveLength(3);
   });
 
   it("separates conventional plain-text reply history", () => {

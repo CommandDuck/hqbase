@@ -33,10 +33,10 @@ export function AgentConnectionDetails({
           aria-label="Connection method"
           className="grid h-9 w-full grid-cols-2 rounded-full"
         >
-          <TabsTrigger className="rounded-full px-2 text-xs" value="mcp">
+          <TabsTrigger className="h-7 min-h-0 rounded-full px-2 text-xs" value="mcp">
             MCP
           </TabsTrigger>
-          <TabsTrigger className="rounded-full px-2 text-xs" value="agent-skill">
+          <TabsTrigger className="h-7 min-h-0 rounded-full px-2 text-xs" value="agent-skill">
             Agent Skill
           </TabsTrigger>
         </TabsList>

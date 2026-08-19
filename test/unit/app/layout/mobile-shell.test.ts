@@ -37,6 +37,10 @@ const composeForm = readFileSync(
   new URL("../../../../app/features/compose/compose-form.tsx", import.meta.url),
   "utf8"
 );
+const agentConnectionDetails = readFileSync(
+  new URL("../../../../app/features/agents/connection-dialog.tsx", import.meta.url),
+  "utf8"
+);
 const mcpConnectionDetails = readFileSync(
   new URL("../../../../app/features/mcp/connection-dialog.tsx", import.meta.url),
   "utf8"
@@ -72,6 +76,7 @@ describe("mobile application shell", () => {
   });
 
   it("keeps MCP and Agent Skill connection details in Settings", () => {
+    expect(agentConnectionDetails.match(/h-7 min-h-0 rounded-full/g)).toHaveLength(2);
     expect(mcpConnectionDetails).toContain("text-base sm:text-xs");
     expect(mcpConnectionDetails).toContain('value="read-only"');
     expect(mcpConnectionDetails).toContain('value="mail-actions"');

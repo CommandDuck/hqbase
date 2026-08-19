@@ -2,6 +2,7 @@ import type * as React from "react";
 import { PiPaperclip, PiPaperPlaneTilt, PiTrash } from "react-icons/pi";
 
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import type { DraftAttachment } from "@/features/drafts/types";
 import { cn } from "@/lib/cn";
 import { AttachmentList } from "./attachment-list";
@@ -85,18 +86,17 @@ export function ComposeForm(props: ComposeFormProps): React.ReactElement {
           >
             <div className="flex gap-2">
               <Button
+                aria-label={props.isPending ? "Sending message" : "Send message"}
                 className={cn(props.presentation === "thread" && "hidden lg:inline-flex")}
                 disabled={props.sendDisabled}
+                size="icon"
                 type="submit"
                 variant="liquidGlass"
               >
                 {props.isPending ? (
-                  "Sending"
+                  <Spinner aria-hidden="true" />
                 ) : (
-                  <>
-                    <PiPaperPlaneTilt aria-hidden="true" className="pointer-events-none" />
-                    <span className="sr-only">Send</span>
-                  </>
+                  <PiPaperPlaneTilt aria-hidden="true" className="pointer-events-none" />
                 )}
               </Button>
               <Button asChild size="icon" type="button" variant="ghost">

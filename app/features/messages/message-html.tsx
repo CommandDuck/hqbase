@@ -213,13 +213,17 @@ export function QuotedContentDivider({
       <Button
         aria-expanded={expanded}
         aria-label={expanded ? "Hide quoted message history" : "Show quoted message history"}
-        className="h-6 min-w-10 rounded-full px-2 font-mono tracking-wider"
+        className="rounded-full"
         onClick={onToggle}
-        size="sm"
+        size="icon"
         type="button"
         variant="outline"
       >
-        ...
+        <span aria-hidden="true" className="inline-flex items-center gap-1">
+          <span className="size-[3px] rounded-full bg-current" data-quoted-content-dot />
+          <span className="size-[3px] rounded-full bg-current" data-quoted-content-dot />
+          <span className="size-[3px] rounded-full bg-current" data-quoted-content-dot />
+        </span>
       </Button>
       <Separator className="flex-1" />
     </div>
