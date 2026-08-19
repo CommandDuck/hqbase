@@ -98,6 +98,14 @@ export function destroyResources(scope, manifest, options = {}) {
   const runCommand = options.runCommand ?? run;
   const targets = destroyPlan(scope, manifest);
 
+  if (targets.worker || targets.queueResources.primary) {
+    wrangler(
+      manifest,
+      ["queues", "consumer", "worker", "remove", manifest.queue.primary.name, manifest.worker.name],
+      { allowFailure: true, dryRun, quiet: false, runCommand }
+    );
+  }
+
   if (targets.worker) {
     wrangler(manifest, ["delete", manifest.worker.name, "--force"], {
       dryRun,
@@ -106,14 +114,6 @@ export function destroyResources(scope, manifest, options = {}) {
     });
     manifest.worker.deployed = false;
     checkpoint(manifest, { dryRun });
-  }
-
-  if (targets.queueResources.primary) {
-    wrangler(
-      manifest,
-      ["queues", "consumer", "worker", "remove", manifest.queue.primary.name, manifest.worker.name],
-      { allowFailure: true, dryRun, quiet: false, runCommand }
-    );
   }
   for (const [selected, queue] of [
     [targets.queueResources.primary, manifest.queue.primary],

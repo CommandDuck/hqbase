@@ -157,6 +157,27 @@ describe("operator destroy scopes", () => {
     });
   });
 
+  it("detaches the queue consumer before deleting the Worker", () => {
+    const commands = [];
+
+    destroyResources("all", manifest(), {
+      checkpoint: () => {},
+      runCommand: (_command, args) => {
+        commands.push(args.slice(2));
+        return "";
+      }
+    });
+
+    const detach = commands.findIndex(
+      (args) => args.join(" ") === "queues consumer worker remove hqbase-jobs hqbase-qa"
+    );
+    const removeWorker = commands.findIndex(
+      (args) => args.join(" ") === "delete hqbase-qa --force"
+    );
+    expect(detach).toBeGreaterThanOrEqual(0);
+    expect(removeWorker).toBeGreaterThan(detach);
+  });
+
   it("keeps completed cleanup checkpoints when a later deletion fails", () => {
     const input = manifest();
     input.worker.deployed = false;
