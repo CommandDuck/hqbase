@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  composeContextLabel,
   defaultSendingIdentity,
   findDraftForComposer,
   forwardedMessage,
@@ -168,6 +169,13 @@ describe("composer state", () => {
 
     expect(identity).toEqual({ mailboxId: "mbx_1", address: "alias@example.com" });
     expect(replyRecipients(inboundMessage)).toEqual(["sender@example.com"]);
+    expect(composeContextLabel("reply", inboundMessage)).toContain(
+      "Replying to sender@example.com ·"
+    );
+    expect(composeContextLabel("forward", inboundMessage)).toContain(
+      "Forwarding message from sender@example.com ·"
+    );
+    expect(composeContextLabel("new", inboundMessage)).toBeNull();
     expect(
       replyRecipients({
         ...inboundMessage,

@@ -5,6 +5,7 @@ const appShell = readFileSync(
   new URL("../../../../app/components/layout/app-shell.tsx", import.meta.url),
   "utf8"
 );
+const app = readFileSync(new URL("../../../../app/app.tsx", import.meta.url), "utf8");
 const desktopLayout = readFileSync(
   new URL("../../../../app/components/layout/desktop-layout.ts", import.meta.url),
   "utf8"
@@ -15,6 +16,10 @@ const desktopShellHook = readFileSync(
 );
 const inboxPage = readFileSync(
   new URL("../../../../app/features/inbox/inbox-page.tsx", import.meta.url),
+  "utf8"
+);
+const draftComposeDialog = readFileSync(
+  new URL("../../../../app/features/drafts/draft-compose-dialog.tsx", import.meta.url),
   "utf8"
 );
 const threadComposeSurface = readFileSync(
@@ -58,5 +63,13 @@ describe("desktop application shell", () => {
 
   it("keeps desktop Reply and Forward inside the app shell", () => {
     expect(threadComposeSurface).not.toContain("createPortal(desktop");
+  });
+
+  it("reopens Reply and Forward drafts with their conversation", () => {
+    expect(app).toContain("selectedDraftHasContext");
+    expect(draftComposeDialog).toContain("getMessageThread(contextMessageId)");
+    expect(draftComposeDialog).toContain('presentation="thread"');
+    expect(draftComposeDialog).toContain("threadContext=");
+    expect(draftComposeDialog).toContain("draftId={draft.id}");
   });
 });

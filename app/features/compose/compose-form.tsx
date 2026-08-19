@@ -15,6 +15,7 @@ type ComposeFormProps = {
   attachments: DraftAttachment[];
   bcc: string;
   cc: string;
+  contextLabel: string | null;
   formId: string;
   from: string;
   html: string;
@@ -56,6 +57,11 @@ export function ComposeForm(props: ComposeFormProps): React.ReactElement {
           onKeyDownCapture={(event) => submitComposeOnShortcut(event, props.sendDisabled)}
           onSubmit={props.onSubmit}
         >
+          {props.contextLabel ? (
+            <div className="border-b bg-muted/30 px-5 py-2 text-xs text-muted-foreground">
+              {props.contextLabel}
+            </div>
+          ) : null}
           <ComposeFields
             identities={props.identities}
             mode={props.mode}

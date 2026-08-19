@@ -9,7 +9,6 @@ import { enforceRateLimit } from "../../security/rate-limit";
 import { recordAudit } from "../audit/service";
 import { requireDraftAttachmentIdsAccess, requireDraftIdAccess } from "../drafts/access";
 import { findMailboxForSending } from "../mailboxes/queries";
-import { requireMessageAccess } from "../messages/access";
 
 import { forwardMessage } from "./forward";
 import { replyToMessage, sendNewMessage } from "./service";
