@@ -17,6 +17,10 @@ const inboxPage = readFileSync(
   new URL("../../../../app/features/inbox/inbox-page.tsx", import.meta.url),
   "utf8"
 );
+const draftComposeDialog = readFileSync(
+  new URL("../../../../app/features/drafts/draft-compose-dialog.tsx", import.meta.url),
+  "utf8"
+);
 const threadComposeSurface = readFileSync(
   new URL("../../../../app/features/compose/thread-compose-surface.tsx", import.meta.url),
   "utf8"
@@ -58,5 +62,10 @@ describe("desktop application shell", () => {
 
   it("keeps desktop Reply and Forward inside the app shell", () => {
     expect(threadComposeSurface).not.toContain("createPortal(desktop");
+  });
+
+  it("reopens Reply and Forward drafts in the fixed compose window", () => {
+    expect(draftComposeDialog).not.toContain('presentation={message ? "thread" : "window"}');
+    expect(draftComposeDialog).not.toContain("threadContext=");
   });
 });
