@@ -71,7 +71,7 @@ export function McpConnectionDetails({
             endpoint={fullEndpoint}
             endpointId={fullEndpointId}
             icon={<PiPaperPlaneTilt aria-hidden="true" className="pointer-events-none size-4" />}
-            permissions="Archive and trash actions, drafts, send, reply, and forward"
+            permissions="Archive, trash, and restore actions, drafts, send, reply, and forward"
             title="Read, manage & send"
           />
         </TabsContent>

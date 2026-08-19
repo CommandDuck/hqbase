@@ -21,7 +21,15 @@ import { conversationFolders } from "../messages/types";
 import type { McpPrincipal } from "./route";
 import { attachmentResult, toolResult } from "./tool-result";
 
-const messageActionSchema = z.enum(["read", "unread", "star", "unstar", "archive", "trash"]);
+const messageActionSchema = z.enum([
+  "read",
+  "unread",
+  "star",
+  "unstar",
+  "archive",
+  "trash",
+  "restore"
+]);
 const conversationFolderSchema = z.enum(conversationFolders);
 
 export function registerMailTools(
@@ -172,7 +180,7 @@ function registerWriteTools(server: McpServer, env: WorkerEnv, principal: McpPri
   server.registerTool(
     "update_message",
     {
-      description: "Change read, starred, archived, or trash state for one permitted message.",
+      description: "Change read, starred, archived, trash, or restored state for one message.",
       inputSchema: {
         action: messageActionSchema,
         messageId: z.string().min(1).max(100)
@@ -192,7 +200,7 @@ function registerWriteTools(server: McpServer, env: WorkerEnv, principal: McpPri
     "update_conversation",
     {
       description:
-        "Change read, starred, archived, or trash state across one permitted conversation.",
+        "Change read, starred, archived, trash, or restored state across one conversation.",
       inputSchema: {
         action: messageActionSchema,
         activeFolder: conversationFolderSchema,

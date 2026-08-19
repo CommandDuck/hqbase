@@ -141,6 +141,28 @@ describe("conversation persistence", () => {
         messageId: "msg_root_a"
       })
     ).resolves.toMatchObject({ affected: 1 });
+
+    await expect(
+      updateConversationAction(env.DB, {
+        action: "restore",
+        activeFolder: "trash",
+        scope: { includeUnassigned: false, mailboxIds: ["mbx_conversations"] },
+        messageId: "msg_reply_a"
+      })
+    ).resolves.toMatchObject({ affected: 1 });
+    await expect(
+      env.DB.prepare("SELECT folder, archived_at, trashed_at FROM messages WHERE id = ?")
+        .bind("msg_reply_a")
+        .first()
+    ).resolves.toEqual({ archived_at: null, folder: "sent", trashed_at: null });
+    await expect(
+      updateConversationAction(env.DB, {
+        action: "restore",
+        activeFolder: "sent",
+        scope: { includeUnassigned: false, mailboxIds: ["mbx_conversations"] },
+        messageId: "msg_reply_a"
+      })
+    ).resolves.toMatchObject({ affected: 0 });
   });
 
   it("pages conversations with a stable opaque cursor", async () => {

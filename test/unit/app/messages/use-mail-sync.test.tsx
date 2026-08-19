@@ -206,7 +206,7 @@ describe("useMailSync", () => {
   });
 
   it("reconciles conversation actions across every loaded page", async () => {
-    const conversations = ["read", "unread", "star", "unstar", "archive", "trash"].map(
+    const conversations = ["read", "unread", "star", "unstar", "archive", "trash", "restore"].map(
       (action, index) => conversation(`message-${action}`, `2026-07-30T1${index}:00:00.000Z`)
     );
     mocks.listConversations.mockResolvedValueOnce({
@@ -230,6 +230,7 @@ describe("useMailSync", () => {
       hook.result.applyConversationAction("thread-message-unstar", "unstar", 1);
       hook.result.applyConversationAction("thread-message-archive", "archive", 1);
       hook.result.applyConversationAction("thread-message-trash", "trash", 1);
+      hook.result.applyConversationAction("thread-message-restore", "restore", 1);
       hook.result.applyConversationAction("thread-missing", "read", 0);
     });
 

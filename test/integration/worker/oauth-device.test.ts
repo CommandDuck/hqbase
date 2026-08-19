@@ -138,6 +138,36 @@ describe("OAuth Device Authorization Grant", () => {
     expect(api.status, await api.clone().text()).toBe(200);
     await expect(api.json()).resolves.toEqual([]);
 
+    if (!token.refresh_token) throw new Error("Refresh token was not issued.");
+    const rotatedResponse = await refreshToken(token.refresh_token);
+    expect(rotatedResponse.status, await rotatedResponse.clone().text()).toBe(200);
+    const rotated = (await rotatedResponse.json()) as {
+      access_token?: string;
+      refresh_token?: string;
+      scope?: string;
+    };
+    expect(rotated.access_token).toMatch(/^hqb_access_/);
+    expect(rotated.refresh_token).toMatch(/^hqb_refresh_/);
+
+    const concurrentReplay = await refreshToken(token.refresh_token);
+    expect(concurrentReplay.status, await concurrentReplay.clone().text()).toBe(200);
+    await expect(concurrentReplay.json()).resolves.toEqual(rotated);
+
+    await env.DB.prepare(
+      `UPDATE oauthRefreshToken
+       SET rotationReplayExpiresAt = ?
+       WHERE sessionId = ? AND rotatedAt IS NOT NULL`
+    )
+      .bind("2000-01-01T00:00:00.000Z", ownerSessionId)
+      .run();
+    const lateReplay = await refreshToken(token.refresh_token);
+    expect(lateReplay.status).toBe(400);
+    await expect(lateReplay.json()).resolves.toMatchObject({ error: "invalid_grant" });
+    if (!rotated.refresh_token) throw new Error("Rotated refresh token was not issued.");
+    const invalidatedFamily = await refreshToken(rotated.refresh_token);
+    expect(invalidatedFamily.status).toBe(400);
+    await expect(invalidatedFamily.json()).resolves.toMatchObject({ error: "invalid_grant" });
+
     const replay = await pollToken(authorization.device_code);
     expect(replay.status).toBe(400);
     await expect(replay.json()).resolves.toMatchObject({ error: "invalid_grant" });
@@ -273,6 +303,19 @@ function pollToken(deviceCode: string): Promise<Response> {
       client_id: clientId,
       device_code: deviceCode,
       grant_type: deviceCodeGrantType,
+      resource: apiResource
+    }),
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    method: "POST"
+  });
+}
+
+function refreshToken(token: string): Promise<Response> {
+  return SELF.fetch(`${origin}/api/auth/oauth2/token`, {
+    body: new URLSearchParams({
+      client_id: clientId,
+      grant_type: "refresh_token",
+      refresh_token: token,
       resource: apiResource
     }),
     headers: { "content-type": "application/x-www-form-urlencoded" },

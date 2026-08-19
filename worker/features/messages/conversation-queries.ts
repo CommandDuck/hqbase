@@ -204,6 +204,17 @@ export async function updateConversationAction(
         bindings.push(input.activeFolder);
       }
       break;
+    case "restore":
+      set = `folder = CASE
+               WHEN mailbox_id IS NULL THEN 'catchall'
+               WHEN direction = 'outbound' THEN 'sent'
+               ELSE 'inbox'
+             END,
+             archived_at = NULL, trashed_at = NULL, updated_at = ?`;
+      bindings.unshift(timestamp);
+      where.push("folder = 'trash'");
+      if (input.activeFolder !== "trash") where.push("1 = 0");
+      break;
   }
 
   const result = await db

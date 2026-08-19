@@ -30,7 +30,14 @@ export type ConversationPage = {
   totalCount: number | null;
 };
 
-export type ConversationAction = "read" | "unread" | "star" | "unstar" | "archive" | "trash";
+export type ConversationAction =
+  | "read"
+  | "unread"
+  | "star"
+  | "unstar"
+  | "archive"
+  | "trash"
+  | "restore";
 
 export type MessageDetail = MessageSummary & {
   cc: string[];

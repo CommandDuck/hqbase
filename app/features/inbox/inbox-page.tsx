@@ -158,6 +158,7 @@ export function InboxPage({
     if (
       action === "archive" ||
       action === "trash" ||
+      action === "restore" ||
       (activeFolder === "starred" && action === "unstar")
     ) {
       onMessageRouteChange(activeFolder, null);
@@ -199,6 +200,7 @@ export function InboxPage({
           </div>
         ) : (
           <MessageDetail
+            activeFolder={activeFolder}
             defaultFromMailboxId={defaultFromMailboxId}
             error={detailError}
             isLoading={detailLoading}
