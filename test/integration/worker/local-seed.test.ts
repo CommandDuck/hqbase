@@ -35,7 +35,7 @@ describe("local database seed fixture", () => {
     await applyStatements(
       buildSeedSql(await hashPassword(password), new Date("2026-08-14T18:00:00.000Z"))
     );
-  });
+  }, 60_000);
 
   it("creates a complete workspace with representative records", async () => {
     const setup = await SELF.fetch(`${origin}/api/setup/status`);

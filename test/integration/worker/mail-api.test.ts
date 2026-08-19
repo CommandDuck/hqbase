@@ -168,8 +168,21 @@ describe("HQBase Mail API v1", () => {
       ...tokenRows,
       env.DB.prepare(
         `INSERT INTO threads (id, subject_normalized, last_message_at, created_at, updated_at)
-         VALUES ('thr_api', 'api message', ?, ?, ?)`
-      ).bind(now.toISOString(), now.toISOString(), now.toISOString()),
+         VALUES
+           ('thr_api', 'api message', ?, ?, ?),
+           ('thr_api_unassigned', 'api unassigned', ?, ?, ?),
+           ('thr_api_orphan', 'api orphan', ?, ?, ?)`
+      ).bind(
+        now.toISOString(),
+        now.toISOString(),
+        now.toISOString(),
+        now.toISOString(),
+        now.toISOString(),
+        now.toISOString(),
+        now.toISOString(),
+        now.toISOString(),
+        now.toISOString()
+      ),
       env.DB.prepare(
         `INSERT INTO messages
          (id, thread_id, mailbox_id, direction, folder, from_address, to_json, cc_json, bcc_json,
@@ -180,6 +193,24 @@ describe("HQBase Mail API v1", () => {
                  NULL, '[]', ?, NULL, NULL, 1, ?, ?)`
       ).bind(
         JSON.stringify(["support@example.com"]),
+        now.toISOString(),
+        now.toISOString(),
+        now.toISOString()
+      ),
+      env.DB.prepare(
+        `INSERT INTO messages
+         (id, thread_id, mailbox_id, is_unassigned, direction, folder, from_address,
+          to_json, cc_json, bcc_json, subject, snippet, text_body, references_json,
+          received_at, has_attachments, created_at, updated_at)
+         VALUES
+           ('msg_api_unassigned', 'thr_api_unassigned', NULL, 1, 'inbound', 'catchall',
+            'sender@example.net', '[]', '[]', '[]', 'Unassigned', 'Body', 'Body', '[]', ?, 0, ?, ?),
+           ('msg_api_orphan', 'thr_api_orphan', NULL, 0, 'inbound', 'inbox',
+            'sender@example.net', '[]', '[]', '[]', 'Orphan', 'Body', 'Body', '[]', ?, 0, ?, ?)`
+      ).bind(
+        now.toISOString(),
+        now.toISOString(),
+        now.toISOString(),
         now.toISOString(),
         now.toISOString(),
         now.toISOString()
@@ -306,6 +337,34 @@ describe("HQBase Mail API v1", () => {
     const attachment = await apiFetch("/api/v1/attachments/att_api", readToken);
     expect(attachment.status).toBe(200);
     expect(await attachment.text()).toBe("hello");
+  });
+
+  it("limits unassigned mail to authenticated owners", async () => {
+    try {
+      for (const role of ["member", "admin"] as const) {
+        await setUserRole(role);
+        const list = await apiFetch("/api/v1/messages?folder=catchall", readToken);
+        await expect(list.json()).resolves.toEqual([]);
+        await expect(
+          apiFetch("/api/v1/messages/msg_api_unassigned", readToken)
+        ).resolves.toMatchObject({ status: 403 });
+      }
+
+      await setUserRole("owner");
+      const list = await apiFetch("/api/v1/messages?folder=catchall", readToken);
+      await expect(list.json()).resolves.toMatchObject([{ id: "msg_api_unassigned" }]);
+      await expect(
+        apiFetch("/api/v1/messages/msg_api_unassigned", readToken)
+      ).resolves.toMatchObject({ status: 200 });
+      await expect(apiFetch("/api/v1/messages/msg_api_orphan", readToken)).resolves.toMatchObject({
+        status: 404
+      });
+      await expect(apiFetch("/api/v1/messages/missing", readToken)).resolves.toMatchObject({
+        status: 404
+      });
+    } finally {
+      await setUserRole("member");
+    }
   });
 
   it("rejects wrong audiences, revoked tokens, and invalid bearer precedence", async () => {
@@ -658,6 +717,10 @@ function apiFetch(path: string, token: string, init: RequestInit = {}): Promise<
   const headers = new Headers(init.headers);
   headers.set("authorization", `Bearer ${token}`);
   return SELF.fetch(`${origin}${path}`, { ...init, headers });
+}
+
+async function setUserRole(role: "admin" | "member" | "owner"): Promise<void> {
+  await env.DB.prepare(`UPDATE "user" SET role = ? WHERE id = ?`).bind(role, userId).run();
 }
 
 function extractSessionCookie(response: Response): string {

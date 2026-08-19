@@ -47,7 +47,7 @@ export default {
     const stored = await handleInboundEmail(message, env);
     if (stored.inserted) {
       ctx.waitUntil(
-        notifyInboundMessage(env, stored.message).catch(() => {
+        notifyInboundMessage(env, stored.message, stored.isUnassigned).catch(() => {
           // Push delivery is additive and never changes accepted inbound mail.
         })
       );

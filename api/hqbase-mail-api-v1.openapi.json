@@ -2395,7 +2395,15 @@
             "type": "string"
           },
           "mailboxId": {
-            "type": "string"
+            "description": "The mailbox at deletion, or null for owner-only unassigned mail.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         }
       },

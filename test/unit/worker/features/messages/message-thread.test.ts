@@ -6,6 +6,7 @@ const row: MessageRow = {
   id: "msg_1",
   thread_id: "thr_1",
   mailbox_id: "mbx_allowed",
+  is_unassigned: 0,
   direction: "inbound",
   folder: "inbox",
   from_address: "customer@example.com",
@@ -41,10 +42,10 @@ describe("message threads", () => {
       sql.includes("FROM message_attachments") ? { bind: attachmentBind } : { bind: threadBind }
     );
 
-    const result = await listThreadMessages({ prepare } as unknown as D1Database, "thr_1", [
-      "mbx_allowed",
-      "mbx_second"
-    ]);
+    const result = await listThreadMessages({ prepare } as unknown as D1Database, "thr_1", {
+      includeUnassigned: false,
+      mailboxIds: ["mbx_allowed", "mbx_second"]
+    });
 
     expect(result).toHaveLength(1);
     expect(result[0]).toMatchObject({
@@ -55,12 +56,32 @@ describe("message threads", () => {
     expect(prepare.mock.calls[0]?.[0]).toContain("ORDER BY COALESCE");
     expect(prepare.mock.calls[0]?.[0]).toContain("delivered_to_address_id");
     expect(threadBind).toHaveBeenCalledWith("thr_1", "mbx_allowed", "mbx_second");
+    expect(prepare.mock.calls[0]?.[0]).not.toContain("IS NULL");
+  });
+
+  it("reaches explicitly unassigned messages for scopes that include them", async () => {
+    const threadBind = vi.fn(() => ({ all: vi.fn(async () => ({ results: [row] })) }));
+    const attachmentBind = vi.fn(() => ({ all: vi.fn(async () => ({ results: [] })) }));
+    const prepare = vi.fn((sql: string) =>
+      sql.includes("FROM message_attachments") ? { bind: attachmentBind } : { bind: threadBind }
+    );
+
+    await listThreadMessages({ prepare } as unknown as D1Database, "thr_1", {
+      includeUnassigned: true,
+      mailboxIds: ["mbx_allowed"]
+    });
+
+    expect(prepare.mock.calls[0]?.[0]).toContain("is_unassigned = 1");
+    expect(threadBind).toHaveBeenCalledWith("thr_1", "mbx_allowed");
   });
 
   it("does not query when no mailbox is accessible", async () => {
     const prepare = vi.fn();
     await expect(
-      listThreadMessages({ prepare } as unknown as D1Database, "thr_1", [])
+      listThreadMessages({ prepare } as unknown as D1Database, "thr_1", {
+        includeUnassigned: false,
+        mailboxIds: []
+      })
     ).resolves.toEqual([]);
     expect(prepare).not.toHaveBeenCalled();
   });

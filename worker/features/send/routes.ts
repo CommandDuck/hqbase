@@ -9,7 +9,7 @@ import { enforceRateLimit } from "../../security/rate-limit";
 import { recordAudit } from "../audit/service";
 import { requireDraftAttachmentIdsAccess, requireDraftIdAccess } from "../drafts/access";
 import { findMailboxForSending } from "../mailboxes/queries";
-import { getMessageMailboxId } from "../messages/queries";
+import { requireMessageAccess } from "../messages/access";
 
 import { replyToMessage, sendNewMessage } from "./service";
 import { replyMessageSchema, sendMessageSchema } from "./validation";
@@ -27,7 +27,7 @@ sendRoutes.post("/send", async (c) => {
   const input = parseWith(sendMessageSchema, await readJson(c.req.raw));
   const mailbox = await findMailboxForSending(c.env.DB, input.from);
   if (!mailbox) throw new AppError("MAILBOX_NOT_FOUND", "Sending mailbox not found.", 404);
-  await requireMailboxAccess(
+  await requireMessageAccess(
     c.env.DB,
     authContext.user.id,
     authContext.user.role,
@@ -63,7 +63,7 @@ sendRoutes.post("/reply", async (c) => {
     c.env.DB,
     authContext.user.id,
     authContext.user.role,
-    await getMessageMailboxId(c.env.DB, input.messageId),
+    input.messageId,
     "agent"
   );
   const mailbox = await findMailboxForSending(c.env.DB, input.from);

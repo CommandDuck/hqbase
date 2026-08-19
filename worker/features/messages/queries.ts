@@ -1,3 +1,5 @@
+import type { MessageScope } from "../../auth/mailbox-access";
+import { messageScopeSql } from "../../auth/mailbox-access";
 import { newId, nowIso } from "../../db/client";
 import { AppError } from "../../lib/errors";
 import type { MessageAction } from "./actions";
@@ -31,7 +33,7 @@ export type ListMessageFilters = {
   limit?: number | undefined;
   mailboxId?: string | undefined;
   search?: string | undefined;
-  mailboxIds?: string[] | undefined;
+  scope: MessageScope;
 };
 
 export type MessagePage = {
@@ -57,16 +59,18 @@ export async function insertMessage(
   await db
     .prepare(
       `INSERT INTO messages (
-        id, thread_id, mailbox_id, direction, folder, from_address, to_json, cc_json, bcc_json,
+        id, thread_id, mailbox_id, is_unassigned, direction, folder,
+        from_address, to_json, cc_json, bcc_json,
         subject, snippet, text_body, html_r2_key, raw_r2_key, message_id, dedupe_key,
         in_reply_to, references_json, received_at, sent_at, read_at, has_attachments,
         created_at, updated_at, delivered_to_address_id, sent_from_address_id
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     .bind(
       id,
       input.threadId,
       input.mailboxId,
+      input.isUnassigned ? 1 : 0,
       input.direction,
       input.folder,
       input.fromAddress,
@@ -150,12 +154,11 @@ export async function listMessagePage(
   const where: string[] = [];
   const params: Array<string | number> = [];
 
-  // The mailbox-access filter is applied first and is never relaxed by a cursor.
-  if (filters.mailboxIds) {
-    if (filters.mailboxIds.length === 0) return { messages: [], nextCursor: null };
-    where.push(`mailbox_id IN (${filters.mailboxIds.map(() => "?").join(", ")})`);
-    params.push(...filters.mailboxIds);
-  }
+  // The access filter is applied first and is never relaxed by a cursor.
+  const scope = messageScopeSql(filters.scope, "mailbox_id", "is_unassigned");
+  if (!scope) return { messages: [], nextCursor: null };
+  where.push(scope.sql);
+  params.push(...scope.params);
 
   if (filters.folder) {
     where.push("folder = ?");
@@ -220,17 +223,18 @@ export async function getMessageDetail(db: D1Database, id: string): Promise<Mess
 export async function listThreadMessages(
   db: D1Database,
   threadId: string,
-  mailboxIds: string[]
+  scope: MessageScope
 ): Promise<MessageDetail[]> {
-  if (mailboxIds.length === 0) return [];
+  const scopeSql = messageScopeSql(scope, "mailbox_id", "is_unassigned");
+  if (!scopeSql) return [];
   const result = await db
     .prepare(
       `${messageSelect}
-       WHERE thread_id = ? AND mailbox_id IN (${mailboxIds.map(() => "?").join(", ")})
+       WHERE thread_id = ? AND ${scopeSql.sql}
        ORDER BY COALESCE(received_at, sent_at, created_at) ASC
        LIMIT 100`
     )
-    .bind(threadId, ...mailboxIds)
+    .bind(threadId, ...scopeSql.params)
     .all<MessageRow>();
   return Promise.all(result.results.map((row) => mapMessageDetail(db, row)));
 }
@@ -301,25 +305,6 @@ export async function getMessageHtmlKey(db: D1Database, id: string): Promise<str
     .bind(id)
     .first<{ html_r2_key: string | null }>();
   return row?.html_r2_key ?? null;
-}
-
-export async function getMessageMailboxId(db: D1Database, id: string): Promise<string | null> {
-  const row = await db
-    .prepare("SELECT mailbox_id FROM messages WHERE id = ?")
-    .bind(id)
-    .first<{ mailbox_id: string | null }>();
-  return row?.mailbox_id ?? null;
-}
-
-export async function getAttachmentMailboxId(db: D1Database, id: string): Promise<string | null> {
-  const row = await db
-    .prepare(
-      `SELECT m.mailbox_id FROM message_attachments a
-       JOIN messages m ON m.id = a.message_id WHERE a.id = ?`
-    )
-    .bind(id)
-    .first<{ mailbox_id: string | null }>();
-  return row?.mailbox_id ?? null;
 }
 
 async function getMessageRow(db: D1Database, id: string): Promise<MessageRow | null> {

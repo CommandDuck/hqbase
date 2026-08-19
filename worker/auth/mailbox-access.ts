@@ -6,6 +6,37 @@ export type MailboxAccessLevel = (typeof mailboxAccessLevels)[number];
 
 const rank: Record<MailboxAccessLevel, number> = { read: 1, agent: 2, manager: 3 };
 
+/** Unassigned messages have no mailbox grant, so only workspace owners can access them. */
+export function canAccessUnassignedMail(role: WorkspaceRole): boolean {
+  return role === "owner";
+}
+
+export type MessageScope = {
+  includeUnassigned: boolean;
+  mailboxIds: string[];
+};
+
+/**
+ * Builds one message-visibility predicate for mailbox grants and owner-only unassigned mail.
+ * The stored marker is separate from `mailbox_id` because a deleted mailbox also sets that column
+ * to null. Returns null when the scope selects nothing.
+ */
+export function messageScopeSql(
+  scope: MessageScope,
+  mailboxColumn: string,
+  unassignedColumn: string
+): { params: string[]; sql: string } | null {
+  const clauses: string[] = [];
+  if (scope.mailboxIds.length > 0) {
+    clauses.push(`${mailboxColumn} IN (${scope.mailboxIds.map(() => "?").join(", ")})`);
+  }
+  if (scope.includeUnassigned) {
+    clauses.push(`${unassignedColumn} = 1`);
+  }
+  if (clauses.length === 0) return null;
+  return { params: [...scope.mailboxIds], sql: `(${clauses.join(" OR ")})` };
+}
+
 export function accessAllows(
   actual: MailboxAccessLevel | null,
   required: MailboxAccessLevel
@@ -35,10 +66,10 @@ export async function requireMailboxAccess(
   db: D1Database,
   userId: string,
   role: WorkspaceRole,
-  mailboxId: string | null,
+  mailboxId: string,
   required: MailboxAccessLevel
 ): Promise<MailboxAccessLevel> {
-  const actual = mailboxId ? await mailboxAccess(db, userId, role, mailboxId) : null;
+  const actual = await mailboxAccess(db, userId, role, mailboxId);
   if (!accessAllows(actual, required)) {
     throw new AppError("MAILBOX_FORBIDDEN", "You do not have access to this mailbox.", 403);
   }
@@ -65,4 +96,16 @@ export async function accessibleMailboxIds(
     .bind(userId, ...allowed)
     .all<{ mailbox_id: string }>();
   return result.results.map((row) => row.mailbox_id);
+}
+
+export async function accessibleMessageScope(
+  db: D1Database,
+  userId: string,
+  role: WorkspaceRole,
+  required: MailboxAccessLevel
+): Promise<MessageScope> {
+  return {
+    includeUnassigned: canAccessUnassignedMail(role),
+    mailboxIds: await accessibleMailboxIds(db, userId, role, required)
+  };
 }
