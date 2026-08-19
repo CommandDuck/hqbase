@@ -1,4 +1,4 @@
-import { eq, type SQL, sql } from "drizzle-orm";
+import { and, eq, type SQL, sql } from "drizzle-orm";
 
 import type { MessageScope } from "../../auth/mailbox-access";
 import { messageScopeCondition } from "../../auth/mailbox-access";
@@ -261,6 +261,8 @@ export async function updateMessageAction(
     direction: current.direction,
     isUnassigned: current.is_unassigned === 1
   });
+  const expectedFolder =
+    action === "unarchive" ? "archived" : action === "restore" ? "trash" : null;
   await createDatabase(db)
     .update(messagesTable)
     .set({
@@ -271,7 +273,11 @@ export async function updateMessageAction(
       trashedAt: patch.trashedAt,
       updatedAt: timestamp
     })
-    .where(eq(messagesTable.id, id))
+    .where(
+      expectedFolder
+        ? and(eq(messagesTable.id, id), eq(messagesTable.folder, expectedFolder))
+        : eq(messagesTable.id, id)
+    )
     .run();
 
   const row = await getMessageRow(db, id);
