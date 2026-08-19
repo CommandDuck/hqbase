@@ -13,6 +13,15 @@ let ownerCookie = "";
 let ownerSessionId = "";
 let otherCookie = "";
 
+type OAuthTokenResponse = {
+  access_token: string;
+  expires_at: number;
+  expires_in: number;
+  refresh_token: string;
+  scope: string;
+  token_type: string;
+};
+
 describe("OAuth Device Authorization Grant", () => {
   beforeAll(async () => {
     await applyCurrentMigrations();
@@ -103,11 +112,7 @@ describe("OAuth Device Authorization Grant", () => {
       .run();
     const tokenResponse = await pollToken(authorization.device_code);
     expect(tokenResponse.status, await tokenResponse.clone().text()).toBe(200);
-    const token = (await tokenResponse.json()) as {
-      access_token?: string;
-      refresh_token?: string;
-      scope?: string;
-    };
+    const token = (await tokenResponse.json()) as OAuthTokenResponse;
     expect(token.access_token).toMatch(/^hqb_access_/);
     expect(token.refresh_token).toMatch(/^hqb_refresh_/);
     expect(token.scope?.split(" ")).toEqual(
@@ -141,17 +146,18 @@ describe("OAuth Device Authorization Grant", () => {
     if (!token.refresh_token) throw new Error("Refresh token was not issued.");
     const rotatedResponse = await refreshToken(token.refresh_token);
     expect(rotatedResponse.status, await rotatedResponse.clone().text()).toBe(200);
-    const rotated = (await rotatedResponse.json()) as {
-      access_token?: string;
-      refresh_token?: string;
-      scope?: string;
-    };
+    const rotated = (await rotatedResponse.json()) as OAuthTokenResponse;
     expect(rotated.access_token).toMatch(/^hqb_access_/);
     expect(rotated.refresh_token).toMatch(/^hqb_refresh_/);
 
     const concurrentReplay = await refreshToken(token.refresh_token);
     expect(concurrentReplay.status, await concurrentReplay.clone().text()).toBe(200);
-    await expect(concurrentReplay.json()).resolves.toEqual(rotated);
+    const replayed = (await concurrentReplay.json()) as OAuthTokenResponse;
+    const { expires_in: rotatedExpiresIn, ...rotatedStable } = rotated;
+    const { expires_in: replayedExpiresIn, ...replayedStable } = replayed;
+    expect(replayedStable).toEqual(rotatedStable);
+    expect(replayedExpiresIn).toBeGreaterThan(0);
+    expect(replayedExpiresIn).toBeLessThanOrEqual(rotatedExpiresIn);
 
     await env.DB.prepare(
       `UPDATE oauthRefreshToken
