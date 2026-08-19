@@ -4,6 +4,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
+import { recordWorkerDeployedForConfig } from "../hqbase/manifest.mjs";
 import { inspectActiveRelease } from "./active-version.mjs";
 import { capture, run } from "./command.mjs";
 import {
@@ -38,7 +39,14 @@ export {
 
 export async function deploy(options = {}) {
   const configFile = resolve(options.configFile ?? resolve(root, "wrangler.jsonc"));
-  if (process.env.HQBASE_FORCE_SOURCE_DEPLOY === "1") return sourceDeploy(root);
+  if (process.env.HQBASE_FORCE_SOURCE_DEPLOY === "1") {
+    const sourceConfigFile = resolve(root, "wrangler.jsonc");
+    const config = JSON.parse(readFileSync(sourceConfigFile, "utf8"));
+    return sourceDeploy(root, {
+      recordWorkerDeployed: () =>
+        recordWorkerDeployedForConfig(sourceConfigFile, workerNameFromConfig(config))
+    });
+  }
   const { bytes, manifest } = await loadVerifiedRelease({
     artifactFile: options.artifactFile ?? process.env.HQBASE_RELEASE_ARTIFACT_FILE,
     expectedVersion: options.expectedVersion ?? process.env.HQBASE_EXPECTED_RELEASE_VERSION,
@@ -60,6 +68,7 @@ export async function deploy(options = {}) {
       manifest.version,
       manifest.artifact.sha256
     );
+    const recordWorkerDeployed = () => recordWorkerDeployedForConfig(configFile, config.name);
     writeFileSync(resolve(source, "wrangler.jsonc"), `${JSON.stringify(config, null, 2)}\n`);
     run("pnpm", ["install", "--frozen-lockfile"], source);
     run("pnpm", ["build"], source);
@@ -68,6 +77,7 @@ export async function deploy(options = {}) {
     if (!activeRelease) {
       applyMigrations(source);
       deploySource(source, { releaseTag });
+      recordWorkerDeployed();
       executeSql(
         source,
         `UPDATE release_state SET installed_version = ${quote(manifest.version)}, installed_schema_version = ${manifest.schemaVersion}, updated_at = datetime('now') WHERE singleton = 1`
@@ -85,6 +95,7 @@ export async function deploy(options = {}) {
       );
     }
     if (activeRelease.version === manifest.version && activeRelease.tag === releaseTag) {
+      recordWorkerDeployed();
       console.log(`HQBase ${manifest.version} is already the active signed release.`);
       return;
     }
@@ -136,6 +147,7 @@ export async function deploy(options = {}) {
       ],
       source
     );
+    recordWorkerDeployed();
     capture(
       "pnpm",
       [
@@ -164,10 +176,11 @@ export async function deploy(options = {}) {
   }
 }
 
-function sourceDeploy(cwd) {
+function sourceDeploy(cwd, options = {}) {
   run("pnpm", ["build"], cwd);
   run("pnpm", ["db:migrate:remote"], cwd);
   deploySource(cwd);
+  options.recordWorkerDeployed?.();
   run("pnpm", ["hqbase", "postdeploy"], cwd);
 }
 
