@@ -78,7 +78,7 @@ describe("conversation persistence", () => {
   it("lists one latest-message row per conversation and applies scoped actions", async () => {
     const filters = {
       folder: "inbox" as const,
-      scope: { includeCatchall: false, mailboxIds: ["mbx_conversations"] }
+      scope: { includeUnassigned: false, mailboxIds: ["mbx_conversations"] }
     };
     const initial = await listConversations(env.DB, filters);
     const initialPage = await listConversationPage(env.DB, { ...filters, limit: 1 });
@@ -97,7 +97,7 @@ describe("conversation persistence", () => {
       updateConversationAction(env.DB, {
         action: "read",
         activeFolder: "inbox",
-        scope: { includeCatchall: false, mailboxIds: ["mbx_conversations"] },
+        scope: { includeUnassigned: false, mailboxIds: ["mbx_conversations"] },
         messageId: "msg_root_a"
       })
     ).resolves.toMatchObject({ affected: 1 });
@@ -105,14 +105,14 @@ describe("conversation persistence", () => {
       updateConversationAction(env.DB, {
         action: "star",
         activeFolder: "inbox",
-        scope: { includeCatchall: false, mailboxIds: ["mbx_conversations"] },
+        scope: { includeUnassigned: false, mailboxIds: ["mbx_conversations"] },
         messageId: "msg_root_a"
       })
     ).resolves.toMatchObject({ affected: 2 });
 
     const starred = await listConversations(env.DB, {
       folder: "starred",
-      scope: { includeCatchall: false, mailboxIds: ["mbx_conversations"] }
+      scope: { includeUnassigned: false, mailboxIds: ["mbx_conversations"] }
     });
     expect(starred).toHaveLength(1);
     expect(starred[0]).toMatchObject({ id: "msg_reply_a", isStarred: true, unreadCount: 0 });
@@ -121,7 +121,7 @@ describe("conversation persistence", () => {
       updateConversationAction(env.DB, {
         action: "archive",
         activeFolder: "inbox",
-        scope: { includeCatchall: false, mailboxIds: ["mbx_conversations"] },
+        scope: { includeUnassigned: false, mailboxIds: ["mbx_conversations"] },
         messageId: "msg_root_a"
       })
     ).resolves.toMatchObject({ affected: 1 });
@@ -129,7 +129,7 @@ describe("conversation persistence", () => {
     expect(
       await listConversations(env.DB, {
         folder: "sent",
-        scope: { includeCatchall: false, mailboxIds: ["mbx_conversations"] }
+        scope: { includeUnassigned: false, mailboxIds: ["mbx_conversations"] }
       })
     ).toHaveLength(1);
 
@@ -137,7 +137,7 @@ describe("conversation persistence", () => {
       updateConversationAction(env.DB, {
         action: "trash",
         activeFolder: "sent",
-        scope: { includeCatchall: false, mailboxIds: ["mbx_conversations"] },
+        scope: { includeUnassigned: false, mailboxIds: ["mbx_conversations"] },
         messageId: "msg_root_a"
       })
     ).resolves.toMatchObject({ affected: 1 });
@@ -146,7 +146,7 @@ describe("conversation persistence", () => {
   it("pages conversations with a stable opaque cursor", async () => {
     const filters = {
       limit: 1,
-      scope: { includeCatchall: false, mailboxIds: ["mbx_conversations"] }
+      scope: { includeUnassigned: false, mailboxIds: ["mbx_conversations"] }
     };
     const firstPage = await listConversationPage(env.DB, filters);
 
@@ -170,7 +170,7 @@ describe("conversation persistence", () => {
       listConversationPage(env.DB, {
         cursor: "not-a-cursor",
         folder: "inbox",
-        scope: { includeCatchall: false, mailboxIds: ["mbx_conversations"] }
+        scope: { includeUnassigned: false, mailboxIds: ["mbx_conversations"] }
       })
     ).rejects.toMatchObject({
       code: "INVALID_CONVERSATION_CURSOR",

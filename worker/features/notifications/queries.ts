@@ -1,13 +1,13 @@
-import type { MailboxScope } from "../../auth/mailbox-access";
-import { mailboxScopeSql } from "../../auth/mailbox-access";
+import type { MessageScope } from "../../auth/mailbox-access";
+import { messageScopeSql } from "../../auth/mailbox-access";
 import { newId, nowIso } from "../../db/client";
 import type { PushSubscriptionInput, PushSubscriptionRow, UnreadCounts } from "./types";
 
 export async function countUnreadMessages(
   db: D1Database,
-  scope: MailboxScope
+  scope: MessageScope
 ): Promise<UnreadCounts> {
-  const scopeSql = mailboxScopeSql(scope, "mailbox_id");
+  const scopeSql = messageScopeSql(scope, "mailbox_id", "is_unassigned");
   if (!scopeSql) {
     return { catchall: 0, inbox: 0, inboxByMailbox: {}, total: 0 };
   }
@@ -40,9 +40,9 @@ export async function countUnreadMessages(
 
 export async function latestInboundMessageId(
   db: D1Database,
-  scope: MailboxScope
+  scope: MessageScope
 ): Promise<string | null> {
-  const scopeSql = mailboxScopeSql(scope, "mailbox_id");
+  const scopeSql = messageScopeSql(scope, "mailbox_id", "is_unassigned");
   if (!scopeSql) return null;
   const row = await db
     .prepare(
@@ -128,11 +128,10 @@ export async function listPushSubscriptionsForMailbox(
 }
 
 /**
- * Catch-all messages belong to no mailbox, so there are no grants to join against. This is a
- * coarse pre-filter that mirrors `canAccessCatchall`; delivery re-checks each user's scope before
- * sending, and that check remains the authoritative one.
+ * Unassigned messages have no mailbox grant. This owner-only query is a coarse pre-filter;
+ * delivery re-checks each user's live scope before it sends a notification.
  */
-export async function listPushSubscriptionsForCatchall(
+export async function listPushSubscriptionsForUnassigned(
   db: D1Database
 ): Promise<PushSubscriptionRow[]> {
   const result = await db

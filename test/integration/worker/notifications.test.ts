@@ -42,7 +42,7 @@ describe("notification persistence", () => {
       ).bind(now, now, now)
     ]);
     await insertMessage("msg_inbox", "mbx_one", "inbox", null);
-    // Catch-all messages matched no mailbox, so they are stored with a NULL mailbox_id.
+    // Unassigned catch-all messages have an explicit marker and no mailbox.
     await insertMessage("msg_catchall", null, "catchall", null);
     await insertMessage("msg_read", "mbx_one", "inbox", now);
     await insertMessage("msg_z_other", "mbx_two", "inbox", null);
@@ -59,7 +59,7 @@ describe("notification persistence", () => {
 
   it("counts only accessible unread attention folders", async () => {
     await expect(
-      countUnreadMessages(env.DB, { includeCatchall: false, mailboxIds: ["mbx_one"] })
+      countUnreadMessages(env.DB, { includeUnassigned: false, mailboxIds: ["mbx_one"] })
     ).resolves.toEqual({
       catchall: 0,
       inbox: 1,
@@ -68,7 +68,7 @@ describe("notification persistence", () => {
     });
     await expect(
       countUnreadMessages(env.DB, {
-        includeCatchall: false,
+        includeUnassigned: false,
         mailboxIds: ["mbx_one", "mbx_two"]
       })
     ).resolves.toEqual({
@@ -81,7 +81,7 @@ describe("notification persistence", () => {
 
   it("counts catch-all messages only for scopes that include them", async () => {
     await expect(
-      countUnreadMessages(env.DB, { includeCatchall: true, mailboxIds: ["mbx_one"] })
+      countUnreadMessages(env.DB, { includeUnassigned: true, mailboxIds: ["mbx_one"] })
     ).resolves.toEqual({
       catchall: 1,
       inbox: 1,
@@ -90,7 +90,7 @@ describe("notification persistence", () => {
     });
     // An owner with no mailboxes at all still sees catch-all mail.
     await expect(
-      countUnreadMessages(env.DB, { includeCatchall: true, mailboxIds: [] })
+      countUnreadMessages(env.DB, { includeUnassigned: true, mailboxIds: [] })
     ).resolves.toEqual({
       catchall: 1,
       inbox: 0,
@@ -213,13 +213,14 @@ async function insertMessage(
   const now = "2026-07-29T12:00:00.000Z";
   await env.DB.prepare(
     `INSERT INTO messages (
-       id, thread_id, mailbox_id, direction, folder, from_address, to_json, cc_json, bcc_json,
+       id, thread_id, mailbox_id, is_unassigned, direction, folder,
+       from_address, to_json, cc_json, bcc_json,
        subject, snippet, text_body, references_json, received_at, read_at, has_attachments,
        created_at, updated_at
-     ) VALUES (?, 'thr_push', ?, 'inbound', ?, 'sender@example.com', '[]', '[]', '[]',
+     ) VALUES (?, 'thr_push', ?, ?, 'inbound', ?, 'sender@example.com', '[]', '[]', '[]',
        'Subject', 'Snippet', 'Body', '[]', ?, ?, 0, ?, ?)`
   )
-    .bind(id, mailboxId, folder, now, readAt, now, now)
+    .bind(id, mailboxId, folder === "catchall" ? 1 : 0, folder, now, readAt, now, now)
     .run();
 }
 

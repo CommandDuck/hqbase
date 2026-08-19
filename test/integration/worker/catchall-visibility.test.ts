@@ -1,34 +1,23 @@
 import { env } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
 
-import initialMigration from "../../../migrations/0001_initial.sql?raw";
-import workspaceMigration from "../../../migrations/0002_workspace.sql?raw";
-import oauthResourcesMigration from "../../../migrations/0003_oauth_resources.sql?raw";
-import conversationMigration from "../../../migrations/0004_conversations.sql?raw";
-import threadRebuildMigration from "../../../migrations/0005_rebuild_threads.sql?raw";
-import { listConversationPage } from "../../../worker/features/messages/conversation-queries";
+import {
+  listConversationPage,
+  updateConversationAction
+} from "../../../worker/features/messages/conversation-queries";
 import { listMessages, listThreadMessages } from "../../../worker/features/messages/queries";
-import { migrationStatements } from "./migration-statements";
+import { applyCurrentMigrations } from "./current-migrations";
 
 /**
- * Catch-all messages are stored with `mailbox_id = NULL`, so a scope predicate built only from
- * `mailbox_id IN (...)` can never match them — SQL `NULL IN (...)` is never true. Every read path
- * therefore has to opt into catch-all explicitly, and these tests pin that behaviour.
+ * Unassigned catch-all mail has no mailbox grant. Its explicit marker must remain separate from a
+ * null mailbox reference, which can also result from mailbox deletion.
  */
 describe("catch-all visibility", () => {
-  const ownerScope = { includeCatchall: true, mailboxIds: ["mbx_support"] };
-  const mailboxOnlyScope = { includeCatchall: false, mailboxIds: ["mbx_support"] };
+  const ownerScope = { includeUnassigned: true, mailboxIds: ["mbx_support"] };
+  const mailboxOnlyScope = { includeUnassigned: false, mailboxIds: ["mbx_support"] };
 
   beforeAll(async () => {
-    for (const migration of [
-      initialMigration,
-      workspaceMigration,
-      oauthResourcesMigration,
-      conversationMigration,
-      threadRebuildMigration
-    ]) {
-      await applyMigration(migration);
-    }
+    await applyCurrentMigrations();
     const now = "2026-08-15T13:15:00.000Z";
     await env.DB.batch([
       env.DB.prepare(
@@ -37,12 +26,16 @@ describe("catch-all visibility", () => {
       ).bind(now, now),
       env.DB.prepare(
         `INSERT INTO threads (id, subject_normalized, last_message_at, created_at, updated_at)
-         VALUES ('thr_inbox', 'inbox', ?, ?, ?), ('thr_catchall', 'catchall', ?, ?, ?)`
-      ).bind(now, now, now, now, now, now)
+         VALUES
+           ('thr_inbox', 'inbox', ?, ?, ?),
+           ('thr_catchall', 'catchall', ?, ?, ?),
+           ('thr_orphan', 'orphan', ?, ?, ?)`
+      ).bind(now, now, now, now, now, now, now, now, now)
     ]);
     await insertMessage({
       folder: "inbox",
       id: "msg_inbox",
+      isUnassigned: false,
       mailboxId: "mbx_support",
       receivedAt: "2026-08-15T13:14:58.000Z",
       threadId: "thr_inbox",
@@ -51,10 +44,20 @@ describe("catch-all visibility", () => {
     await insertMessage({
       folder: "catchall",
       id: "msg_catchall",
+      isUnassigned: true,
       mailboxId: null,
       receivedAt: "2026-08-15T13:15:06.000Z",
       threadId: "thr_catchall",
       to: "hello@example.com"
+    });
+    await insertMessage({
+      folder: "inbox",
+      id: "msg_orphan",
+      isUnassigned: false,
+      mailboxId: null,
+      receivedAt: "2026-08-15T13:15:07.000Z",
+      threadId: "thr_orphan",
+      to: "deleted@example.com"
     });
   });
 
@@ -75,6 +78,11 @@ describe("catch-all visibility", () => {
     expect(everything.map((message) => message.id)).toEqual(["msg_inbox"]);
   });
 
+  it("does not treat a null mailbox reference as unassigned mail", async () => {
+    const everything = await listMessages(env.DB, { scope: ownerScope });
+    expect(everything.map((message) => message.id)).not.toContain("msg_orphan");
+  });
+
   it("applies the same rule to conversations and threads", async () => {
     const included = await listConversationPage(env.DB, {
       folder: "catchall",
@@ -92,11 +100,25 @@ describe("catch-all visibility", () => {
     await expect(listThreadMessages(env.DB, "thr_catchall", ownerScope)).resolves.toHaveLength(1);
     await expect(listThreadMessages(env.DB, "thr_catchall", mailboxOnlyScope)).resolves.toEqual([]);
   });
+
+  it("keeps unassigned access after archive changes the folder", async () => {
+    await expect(
+      updateConversationAction(env.DB, {
+        action: "archive",
+        activeFolder: "catchall",
+        messageId: "msg_catchall",
+        scope: ownerScope
+      })
+    ).resolves.toMatchObject({ affected: 1 });
+    const archived = await listMessages(env.DB, { folder: "archived", scope: ownerScope });
+    expect(archived.map((message) => message.id)).toContain("msg_catchall");
+  });
 });
 
 async function insertMessage(input: {
   folder: "catchall" | "inbox";
   id: string;
+  isUnassigned: boolean;
   mailboxId: string | null;
   receivedAt: string;
   threadId: string;
@@ -105,16 +127,18 @@ async function insertMessage(input: {
   const now = "2026-08-15T13:15:00.000Z";
   await env.DB.prepare(
     `INSERT INTO messages (
-       id, thread_id, mailbox_id, direction, folder, from_address, to_json, cc_json, bcc_json,
+       id, thread_id, mailbox_id, is_unassigned, direction, folder,
+       from_address, to_json, cc_json, bcc_json,
        subject, snippet, text_body, references_json, received_at, read_at, has_attachments,
        created_at, updated_at
-     ) VALUES (?, ?, ?, 'inbound', ?, 'sender@example.com', ?, '[]', '[]',
+     ) VALUES (?, ?, ?, ?, 'inbound', ?, 'sender@example.com', ?, '[]', '[]',
        'Subject', 'Snippet', 'Body', '[]', ?, NULL, 0, ?, ?)`
   )
     .bind(
       input.id,
       input.threadId,
       input.mailboxId,
+      input.isUnassigned ? 1 : 0,
       input.folder,
       JSON.stringify([input.to]),
       input.receivedAt,
@@ -122,10 +146,4 @@ async function insertMessage(input: {
       now
     )
     .run();
-}
-
-async function applyMigration(source: string): Promise<void> {
-  for (const statement of migrationStatements(source)) {
-    await env.DB.prepare(statement).run();
-  }
 }

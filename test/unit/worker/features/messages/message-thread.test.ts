@@ -6,6 +6,7 @@ const row: MessageRow = {
   id: "msg_1",
   thread_id: "thr_1",
   mailbox_id: "mbx_allowed",
+  is_unassigned: 0,
   direction: "inbound",
   folder: "inbox",
   from_address: "customer@example.com",
@@ -42,7 +43,7 @@ describe("message threads", () => {
     );
 
     const result = await listThreadMessages({ prepare } as unknown as D1Database, "thr_1", {
-      includeCatchall: false,
+      includeUnassigned: false,
       mailboxIds: ["mbx_allowed", "mbx_second"]
     });
 
@@ -58,7 +59,7 @@ describe("message threads", () => {
     expect(prepare.mock.calls[0]?.[0]).not.toContain("IS NULL");
   });
 
-  it("reaches catch-all messages, whose mailbox_id is NULL, for scopes that include them", async () => {
+  it("reaches explicitly unassigned messages for scopes that include them", async () => {
     const threadBind = vi.fn(() => ({ all: vi.fn(async () => ({ results: [row] })) }));
     const attachmentBind = vi.fn(() => ({ all: vi.fn(async () => ({ results: [] })) }));
     const prepare = vi.fn((sql: string) =>
@@ -66,11 +67,11 @@ describe("message threads", () => {
     );
 
     await listThreadMessages({ prepare } as unknown as D1Database, "thr_1", {
-      includeCatchall: true,
+      includeUnassigned: true,
       mailboxIds: ["mbx_allowed"]
     });
 
-    expect(prepare.mock.calls[0]?.[0]).toContain("mailbox_id IS NULL");
+    expect(prepare.mock.calls[0]?.[0]).toContain("is_unassigned = 1");
     expect(threadBind).toHaveBeenCalledWith("thr_1", "mbx_allowed");
   });
 
@@ -78,7 +79,7 @@ describe("message threads", () => {
     const prepare = vi.fn();
     await expect(
       listThreadMessages({ prepare } as unknown as D1Database, "thr_1", {
-        includeCatchall: false,
+        includeUnassigned: false,
         mailboxIds: []
       })
     ).resolves.toEqual([]);

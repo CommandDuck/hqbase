@@ -168,6 +168,7 @@ async function storeSentMessage(
   const sendingIdentity = await findAddressIdentity(env.DB, input.from, "send");
   const message = await insertMessage(env.DB, {
     threadId: input.threadId,
+    isUnassigned: false,
     mailboxId: mailbox.id,
     direction: "outbound",
     folder: "sent",

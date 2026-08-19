@@ -7,6 +7,7 @@ import type { ComposeMode } from "@/features/compose/compose-state";
 import { ComposeWindow } from "@/features/compose/compose-window";
 import type { Mailbox } from "@/features/mailboxes/types";
 import { getMessage } from "@/features/messages/api";
+import { ConversationMessages } from "@/features/messages/conversation-messages";
 import type { MessageDetail } from "@/features/messages/types";
 
 import { deleteDraft } from "./api";
@@ -120,6 +121,8 @@ export function DraftComposeDialog({
       message={message}
       mode={mode}
       open
+      presentation={message ? "thread" : "window"}
+      threadContext={message ? <ConversationMessages compact messages={[message]} /> : undefined}
       onDraftsChange={onDraftsChange}
       onOpenChange={onOpenChange}
       onSent={onSent}

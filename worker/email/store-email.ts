@@ -15,10 +15,9 @@ export type StoreInboundInput = {
   parsed: ParsedEmail;
 };
 
-export type StoreInboundResult = {
-  inserted: boolean;
-  message: MessageDetail | MessageSummary;
-};
+export type StoreInboundResult =
+  | { inserted: false; message: MessageDetail | MessageSummary }
+  | { inserted: true; isUnassigned: boolean; message: MessageDetail | MessageSummary };
 
 export async function storeInboundEmail(
   db: D1Database,
@@ -67,6 +66,7 @@ export async function storeInboundEmail(
   });
   const message = await insertMessage(db, {
     threadId,
+    isUnassigned: plan.isUnassigned,
     mailboxId: plan.mailboxId,
     direction: "inbound",
     folder: plan.folder,
@@ -107,6 +107,7 @@ export async function storeInboundEmail(
 
   return {
     inserted: true,
+    isUnassigned: plan.isUnassigned,
     message: (await getMessageDetail(db, message.id)) ?? message
   };
 }

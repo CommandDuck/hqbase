@@ -1,9 +1,9 @@
 import {
   accessAllows,
   accessibleMailboxIds,
-  canAccessCatchall,
+  canAccessUnassignedMail,
   mailboxAccess,
-  mailboxScopeSql,
+  messageScopeSql,
   requireMailboxAccess
 } from "@worker/auth/mailbox-access";
 import { describe, expect, it } from "vitest";
@@ -44,35 +44,39 @@ describe("mailbox access levels", () => {
     ).rejects.toMatchObject({ code: "MAILBOX_FORBIDDEN", status: 403 });
   });
 
-  it("treats catch-all as workspace scoped rather than mailbox scoped", async () => {
-    expect(canAccessCatchall("owner")).toBe(true);
-    expect(canAccessCatchall("admin")).toBe(false);
-    expect(canAccessCatchall("member")).toBe(false);
-
-    await expect(requireMailboxAccess(db, "owner", "owner", null, "manager")).resolves.toBe(
-      "manager"
-    );
-    await expect(requireMailboxAccess(db, "member", "member", null, "read")).rejects.toMatchObject({
-      code: "MAILBOX_FORBIDDEN",
-      status: 403
-    });
+  it("limits unassigned mail to owners", () => {
+    expect(canAccessUnassignedMail("owner")).toBe(true);
+    expect(canAccessUnassignedMail("admin")).toBe(false);
+    expect(canAccessUnassignedMail("member")).toBe(false);
   });
 
-  it("matches catch-all rows with IS NULL, which mailbox_id IN (...) can never do", () => {
+  it("matches only explicitly unassigned rows outside mailbox grants", () => {
     expect(
-      mailboxScopeSql({ includeCatchall: false, mailboxIds: ["mbx_1"] }, "mailbox_id")
+      messageScopeSql(
+        { includeUnassigned: false, mailboxIds: ["mbx_1"] },
+        "mailbox_id",
+        "is_unassigned"
+      )
     ).toEqual({ params: ["mbx_1"], sql: "(mailbox_id IN (?))" });
-    expect(mailboxScopeSql({ includeCatchall: true, mailboxIds: ["mbx_1"] }, "mailbox_id")).toEqual(
-      {
-        params: ["mbx_1"],
-        sql: "(mailbox_id IN (?) OR mailbox_id IS NULL)"
-      }
-    );
-    expect(mailboxScopeSql({ includeCatchall: true, mailboxIds: [] }, "mailbox_id")).toEqual({
-      params: [],
-      sql: "(mailbox_id IS NULL)"
+    expect(
+      messageScopeSql(
+        { includeUnassigned: true, mailboxIds: ["mbx_1"] },
+        "mailbox_id",
+        "is_unassigned"
+      )
+    ).toEqual({
+      params: ["mbx_1"],
+      sql: "(mailbox_id IN (?) OR is_unassigned = 1)"
     });
-    expect(mailboxScopeSql({ includeCatchall: false, mailboxIds: [] }, "mailbox_id")).toBeNull();
+    expect(
+      messageScopeSql({ includeUnassigned: true, mailboxIds: [] }, "mailbox_id", "is_unassigned")
+    ).toEqual({
+      params: [],
+      sql: "(is_unassigned = 1)"
+    });
+    expect(
+      messageScopeSql({ includeUnassigned: false, mailboxIds: [] }, "mailbox_id", "is_unassigned")
+    ).toBeNull();
   });
 
   it("lists only mailbox IDs satisfying the required level", async () => {

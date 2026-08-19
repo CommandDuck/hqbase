@@ -45,6 +45,13 @@ export const splitRecipients = (value: string) =>
     .map((part) => part.trim())
     .filter(Boolean);
 
+export function replyRecipients(message: MessageDetail): string[] {
+  if (message.direction === "inbound") return [message.fromAddress];
+
+  const sender = message.fromAddress.toLowerCase();
+  return message.to.filter((address) => address.toLowerCase() !== sender);
+}
+
 export function replySendingIdentity(
   message: MessageDetail,
   identities: SendingIdentity[],

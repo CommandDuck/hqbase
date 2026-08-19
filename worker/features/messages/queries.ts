@@ -1,9 +1,10 @@
-import type { MailboxScope } from "../../auth/mailbox-access";
-import { mailboxScopeSql } from "../../auth/mailbox-access";
+import type { MessageScope } from "../../auth/mailbox-access";
+import { messageScopeSql } from "../../auth/mailbox-access";
 import { newId, nowIso } from "../../db/client";
 import { AppError } from "../../lib/errors";
 import type { MessageAction } from "./actions";
 import { buildMessageActionPatch } from "./actions";
+import { decodeKeysetCursor, encodeKeysetCursor, type KeysetCursor } from "./keyset-cursor";
 import type {
   AttachmentRow,
   InsertAttachmentInput,
@@ -19,13 +20,34 @@ const messageSelect = `SELECT messages.*,
    WHERE id = messages.delivered_to_address_id) AS delivered_to_address
   FROM messages`;
 
+/** Message cursors are versioned separately from conversation cursors. */
+const messageCursorVersion = "m1";
+const messageActivityAt = "COALESCE(received_at, sent_at, created_at)";
+
+export const defaultMessageLimit = 100;
+export const maxMessageLimit = 100;
+
 export type ListMessageFilters = {
+  cursor?: string | undefined;
   folder?: string | undefined;
   limit?: number | undefined;
   mailboxId?: string | undefined;
   search?: string | undefined;
-  scope: MailboxScope;
+  scope: MessageScope;
 };
+
+export type MessagePage = {
+  messages: MessageSummary[];
+  nextCursor: string | null;
+};
+
+export function decodeMessageCursor(value: string): KeysetCursor {
+  const cursor = decodeKeysetCursor(messageCursorVersion, value);
+  if (!cursor) {
+    throw new AppError("INVALID_CURSOR", "Message cursor is invalid.", 400);
+  }
+  return cursor;
+}
 
 export async function insertMessage(
   db: D1Database,
@@ -37,16 +59,18 @@ export async function insertMessage(
   await db
     .prepare(
       `INSERT INTO messages (
-        id, thread_id, mailbox_id, direction, folder, from_address, to_json, cc_json, bcc_json,
+        id, thread_id, mailbox_id, is_unassigned, direction, folder,
+        from_address, to_json, cc_json, bcc_json,
         subject, snippet, text_body, html_r2_key, raw_r2_key, message_id, dedupe_key,
         in_reply_to, references_json, received_at, sent_at, read_at, has_attachments,
         created_at, updated_at, delivered_to_address_id, sent_from_address_id
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     .bind(
       id,
       input.threadId,
       input.mailboxId,
+      input.isUnassigned ? 1 : 0,
       input.direction,
       input.folder,
       input.fromAddress,
@@ -120,11 +144,19 @@ export async function listMessages(
   db: D1Database,
   filters: ListMessageFilters
 ): Promise<MessageSummary[]> {
+  return (await listMessagePage(db, filters)).messages;
+}
+
+export async function listMessagePage(
+  db: D1Database,
+  filters: ListMessageFilters
+): Promise<MessagePage> {
   const where: string[] = [];
   const params: Array<string | number> = [];
 
-  const scope = mailboxScopeSql(filters.scope, "mailbox_id");
-  if (!scope) return [];
+  // The access filter is applied first and is never relaxed by a cursor.
+  const scope = messageScopeSql(filters.scope, "mailbox_id", "is_unassigned");
+  if (!scope) return { messages: [], nextCursor: null };
   where.push(scope.sql);
   params.push(...scope.params);
 
@@ -144,17 +176,39 @@ export async function listMessages(
     params.push(like, like, like, like, like);
   }
 
-  const limit = Math.min(Math.max(filters.limit ?? 100, 1), 100);
+  const cursor = filters.cursor ? decodeMessageCursor(filters.cursor) : null;
+  if (cursor) {
+    where.push(`(${messageActivityAt} < ? OR (${messageActivityAt} = ? AND messages.id < ?))`);
+    params.push(cursor.activityAt, cursor.activityAt, cursor.id);
+  }
+
+  const limit = Math.min(Math.max(filters.limit ?? defaultMessageLimit, 1), maxMessageLimit);
+  // Read one extra row to learn whether another page exists.
   const sql = `${messageSelect} ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
-    ORDER BY COALESCE(received_at, sent_at, created_at) DESC LIMIT ?`;
-  params.push(limit);
+    ORDER BY ${messageActivityAt} DESC, messages.id DESC LIMIT ?`;
+  params.push(limit + 1);
 
   const result = await db
     .prepare(sql)
     .bind(...params)
     .all<MessageRow>();
 
-  return result.results.map(mapMessageSummary);
+  const pageRows = result.results.slice(0, limit);
+  const finalRow = pageRows.at(-1);
+  return {
+    messages: pageRows.map(mapMessageSummary),
+    nextCursor:
+      result.results.length > limit && finalRow
+        ? encodeKeysetCursor(messageCursorVersion, {
+            activityAt: messageActivityOf(finalRow),
+            id: finalRow.id
+          })
+        : null
+  };
+}
+
+function messageActivityOf(row: MessageRow): string {
+  return row.received_at ?? row.sent_at ?? row.created_at;
 }
 
 export async function getMessageDetail(db: D1Database, id: string): Promise<MessageDetail | null> {
@@ -169,9 +223,9 @@ export async function getMessageDetail(db: D1Database, id: string): Promise<Mess
 export async function listThreadMessages(
   db: D1Database,
   threadId: string,
-  scope: MailboxScope
+  scope: MessageScope
 ): Promise<MessageDetail[]> {
-  const scopeSql = mailboxScopeSql(scope, "mailbox_id");
+  const scopeSql = messageScopeSql(scope, "mailbox_id", "is_unassigned");
   if (!scopeSql) return [];
   const result = await db
     .prepare(
@@ -251,25 +305,6 @@ export async function getMessageHtmlKey(db: D1Database, id: string): Promise<str
     .bind(id)
     .first<{ html_r2_key: string | null }>();
   return row?.html_r2_key ?? null;
-}
-
-export async function getMessageMailboxId(db: D1Database, id: string): Promise<string | null> {
-  const row = await db
-    .prepare("SELECT mailbox_id FROM messages WHERE id = ?")
-    .bind(id)
-    .first<{ mailbox_id: string | null }>();
-  return row?.mailbox_id ?? null;
-}
-
-export async function getAttachmentMailboxId(db: D1Database, id: string): Promise<string | null> {
-  const row = await db
-    .prepare(
-      `SELECT m.mailbox_id FROM message_attachments a
-       JOIN messages m ON m.id = a.message_id WHERE a.id = ?`
-    )
-    .bind(id)
-    .first<{ mailbox_id: string | null }>();
-  return row?.mailbox_id ?? null;
 }
 
 async function getMessageRow(db: D1Database, id: string): Promise<MessageRow | null> {
