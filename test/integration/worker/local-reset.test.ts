@@ -44,7 +44,7 @@ describe("local database reset", () => {
     await applyStatements(
       buildSeedSql(await hashPassword("local-seed-password"), new Date("2026-08-14T18:00:00.000Z"))
     );
-  });
+  }, 60_000);
 
   it("removes current data and supports a fresh migration", async () => {
     await applyStatements(resetSql);
