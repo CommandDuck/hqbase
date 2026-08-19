@@ -5,6 +5,7 @@ const appShell = readFileSync(
   new URL("../../../../app/components/layout/app-shell.tsx", import.meta.url),
   "utf8"
 );
+const app = readFileSync(new URL("../../../../app/app.tsx", import.meta.url), "utf8");
 const desktopLayout = readFileSync(
   new URL("../../../../app/components/layout/desktop-layout.ts", import.meta.url),
   "utf8"
@@ -64,8 +65,11 @@ describe("desktop application shell", () => {
     expect(threadComposeSurface).not.toContain("createPortal(desktop");
   });
 
-  it("reopens Reply and Forward drafts in the fixed compose window", () => {
-    expect(draftComposeDialog).not.toContain('presentation={message ? "thread" : "window"}');
-    expect(draftComposeDialog).not.toContain("threadContext=");
+  it("reopens Reply and Forward drafts with their conversation", () => {
+    expect(app).toContain("selectedDraftHasContext");
+    expect(draftComposeDialog).toContain("getMessageThread(contextMessageId)");
+    expect(draftComposeDialog).toContain('presentation="thread"');
+    expect(draftComposeDialog).toContain("threadContext=");
+    expect(draftComposeDialog).toContain("draftId={draft.id}");
   });
 });

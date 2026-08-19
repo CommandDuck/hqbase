@@ -147,6 +147,16 @@ export function composeTitle(mode: ComposeMode): string {
   return mode === "reply" ? "Reply" : mode === "forward" ? "Forward" : "New message";
 }
 
+export function composeContextLabel(
+  mode: ComposeMode,
+  message: MessageDetail | null
+): string | null {
+  if (mode === "new" || !message) return null;
+  const timestamp = message.receivedAt ?? message.sentAt ?? message.createdAt;
+  const action = mode === "reply" ? "Replying to" : "Forwarding message from";
+  return `${action} ${message.fromAddress} · ${formatDateTime(timestamp)}`;
+}
+
 export function draftStatus(state: DraftSaveState): string {
   return state === "saving"
     ? "Saving draft…"
