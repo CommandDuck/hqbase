@@ -152,16 +152,16 @@ export async function updateConversationAction(
     scope: MessageScope;
   }
 ): Promise<{ affected: number; threadId: string }> {
-  const selected = await getRow<{ thread_id: string }>(
-    db,
-    sql`SELECT thread_id FROM messages WHERE id = ${input.messageId}`
-  );
-  if (!selected) {
-    throw new AppError("MESSAGE_NOT_FOUND", "Message not found.", 404);
-  }
   const scope = messageScopeCondition(input.scope, "mailbox_id", "is_unassigned");
   if (!scope) {
     throw new AppError("MAILBOX_FORBIDDEN", "You do not have access to this mailbox.", 403);
+  }
+  const selected = await getRow<{ thread_id: string }>(
+    db,
+    sql`SELECT thread_id FROM messages WHERE id = ${input.messageId} AND ${scope}`
+  );
+  if (!selected) {
+    throw new AppError("MESSAGE_NOT_FOUND", "Message not found.", 404);
   }
 
   const timestamp = nowIso();

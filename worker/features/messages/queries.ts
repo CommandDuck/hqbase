@@ -264,11 +264,11 @@ export async function updateMessageAction(
   await createDatabase(db)
     .update(messagesTable)
     .set({
-      folder: patch.folder ?? current.folder,
-      readAt: patch.readAt === undefined ? current.read_at : patch.readAt,
-      starredAt: patch.starredAt === undefined ? current.starred_at : patch.starredAt,
-      archivedAt: patch.archivedAt === undefined ? current.archived_at : patch.archivedAt,
-      trashedAt: patch.trashedAt === undefined ? current.trashed_at : patch.trashedAt,
+      folder: patch.folder,
+      readAt: patch.readAt,
+      starredAt: patch.starredAt,
+      archivedAt: patch.archivedAt,
+      trashedAt: patch.trashedAt,
       updatedAt: timestamp
     })
     .where(eq(messagesTable.id, id))

@@ -38,7 +38,7 @@ export async function enforceRateLimit(
          request_count = request_count + 1
        RETURNING request_count`
   );
-  if ((row?.request_count ?? 1) > input.limit) {
+  if (!row || row.request_count > input.limit) {
     throw new AppError("RATE_LIMITED", "Too many requests. Try again later.", 429);
   }
 }

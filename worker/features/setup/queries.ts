@@ -54,15 +54,8 @@ export async function upsertWorkspaceHost(
 ): Promise<void> {
   const timestamp = new Date().toISOString();
   const database = createDatabase(db);
-  if (input.kind === "portal" && input.canonical !== false) {
-    await database
-      .update(workspaceHosts)
-      .set({ isCanonical: false })
-      .where(eq(workspaceHosts.kind, "portal"))
-      .run();
-  }
   const isCanonical = input.kind === "portal" && input.canonical !== false;
-  await database
+  const upsert = database
     .insert(workspaceHosts)
     .values({
       id: `host_${crypto.randomUUID()}`,
@@ -85,8 +78,18 @@ export async function upsertWorkspaceHost(
         verifiedAt: timestamp,
         updatedAt: timestamp
       }
-    })
-    .run();
+    });
+  if (isCanonical) {
+    await database.batch([
+      database
+        .update(workspaceHosts)
+        .set({ isCanonical: false })
+        .where(eq(workspaceHosts.kind, "portal")),
+      upsert
+    ]);
+    return;
+  }
+  await upsert.run();
 }
 
 export async function countUsers(db: D1Database): Promise<number> {
