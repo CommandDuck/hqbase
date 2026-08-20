@@ -1,9 +1,10 @@
 import { fileURLToPath } from "node:url";
-import { cloudflareTest, readD1Migrations } from "@cloudflare/vitest-pool-workers";
+import { cloudflareTest } from "@cloudflare/vitest-pool-workers";
 import { defineConfig } from "vitest/config";
+import { readD1MigrationsRecursively } from "./scripts/d1-migrations.mjs";
 
 export default defineConfig(async () => {
-  const migrations = await readD1Migrations(
+  const migrations = readD1MigrationsRecursively(
     fileURLToPath(new URL("./migrations", import.meta.url))
   );
 

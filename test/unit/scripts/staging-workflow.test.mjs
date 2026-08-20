@@ -11,6 +11,19 @@ const releaseWorkflow = readFileSync(
 );
 
 describe("staging workflow lifecycle record", () => {
+  it("tests a populated legacy migration upgrade before deployment", () => {
+    const legacy = workflow.indexOf('set_migrations_pattern "../../../migrations/*.sql"');
+    const nested = workflow.indexOf('set_migrations_pattern "../../../migrations/**/*.sql"');
+    const deploy = workflow.indexOf("pnpm exec wrangler deploy --config");
+
+    expect(legacy).toBeGreaterThan(-1);
+    expect(nested).toBeGreaterThan(legacy);
+    expect(deploy).toBeGreaterThan(nested);
+    expect(workflow).toContain("drizzle-upgrade-probe");
+    expect(workflow).toContain("baseline_count");
+    expect(workflow).toContain('"migration_count":15');
+  });
+
   it("records the reviewed Worker deploy before cleanup", () => {
     const deploy = workflow.indexOf("pnpm exec wrangler deploy --config");
     const checkpoint = workflow.indexOf("recordWorkerDeployedForConfig");

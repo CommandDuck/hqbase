@@ -56,7 +56,8 @@ export function createWranglerConfig(manifest) {
         binding: "DB",
         database_name: manifest.d1.name,
         database_id: manifest.d1.id,
-        migrations_dir: `${rootFromDeployment}/migrations`
+        migrations_dir: `${rootFromDeployment}/migrations`,
+        migrations_pattern: `${rootFromDeployment}/migrations/**/*.sql`
       }
     ],
     r2_buckets: [

@@ -68,6 +68,25 @@ jobs:
           --oauth-client-id "$HQBASE_STAGING_OAUTH_CLIENT_ID"
           --skip-build
           --skip-deploy
+      - name: Verify populated remote migration upgrade and retry
+        run: |
+          config=".hqbase/deployments/$DEPLOYMENT_NAME/wrangler.jsonc"
+          set_migrations_pattern() {
+            jq --arg pattern "$1" '.d1_databases[0].migrations_pattern = $pattern' \
+              "$config" > "$config.tmp"
+            mv "$config.tmp" "$config"
+          }
+
+          set_migrations_pattern "../../../migrations/*.sql"
+          pnpm exec wrangler d1 migrations apply DB --remote --config "$config"
+          pnpm exec wrangler d1 execute DB --remote --config "$config" \
+            --command "INSERT INTO app_settings (key, value_json, created_at, updated_at) VALUES ('drizzle-upgrade-probe', '{\"state\":\"preserved\"}', datetime('now'), datetime('now'))"
+          set_migrations_pattern "../../../migrations/**/*.sql"
+          pnpm exec wrangler d1 migrations apply DB --remote --config "$config"
+          pnpm exec wrangler d1 migrations apply DB --remote --config "$config"
+          result=$(pnpm exec wrangler d1 execute DB --remote --config "$config" --json \
+            --command "SELECT (SELECT value_json FROM app_settings WHERE key = 'drizzle-upgrade-probe') AS value_json, (SELECT COUNT(*) FROM d1_migrations) AS migration_count, (SELECT COUNT(*) FROM d1_migrations WHERE name GLOB 'drizzle/*_baseline.sql') AS baseline_count")
+          jq -e '.[0].results[0] == {"value_json":"{\"state\":\"preserved\"}","migration_count":15,"baseline_count":1}' <<<"$result"
       - name: Deploy reviewed source candidate
         run: |
           config=".hqbase/deployments/$DEPLOYMENT_NAME/wrangler.jsonc"

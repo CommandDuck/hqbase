@@ -1,6 +1,22 @@
 import { oauthDeviceAuthorization, oauthProvider } from "@better-auth/oauth-provider";
 import { betterAuth } from "better-auth";
+import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { admin } from "better-auth/plugins";
+import { createDatabase } from "../db/drizzle";
+import {
+  accounts,
+  deviceCodes,
+  oauthAccessTokens,
+  oauthClientAssertions,
+  oauthClientResources,
+  oauthClients,
+  oauthConsents,
+  oauthRefreshTokens,
+  oauthResources,
+  sessions,
+  users,
+  verifications
+} from "../db/schema";
 import { recordAudit } from "../features/audit/service";
 import { sendPasswordSetupEmail } from "../features/users/email";
 import type { WorkerEnv } from "../lib/env";
@@ -32,7 +48,24 @@ export function createAuth(
       } catch {}
       return [];
     },
-    database: env.DB,
+    database: drizzleAdapter(createDatabase(env.DB), {
+      provider: "sqlite",
+      schema: {
+        account: accounts,
+        deviceCode: deviceCodes,
+        oauthAccessToken: oauthAccessTokens,
+        oauthClient: oauthClients,
+        oauthClientAssertion: oauthClientAssertions,
+        oauthClientResource: oauthClientResources,
+        oauthConsent: oauthConsents,
+        oauthRefreshToken: oauthRefreshTokens,
+        oauthResource: oauthResources,
+        session: sessions,
+        user: users,
+        verification: verifications
+      },
+      transaction: false
+    }),
     disabledPaths: ["/token"],
     secret: env.BETTER_AUTH_SECRET,
     ...(backgroundTaskHandler

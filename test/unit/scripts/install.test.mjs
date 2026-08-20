@@ -75,6 +75,10 @@ describe("HQBase installation resources", () => {
     const config = createWranglerConfig(manifest);
 
     expect(config.account_id).toBe("a".repeat(32));
+    expect(config.d1_databases[0]).toMatchObject({
+      migrations_dir: "../../../migrations",
+      migrations_pattern: "../../../migrations/**/*.sql"
+    });
     expect(config.queues).toEqual({
       producers: [{ binding: "HQBASE_JOBS", queue: "hqbase-qa-jobs" }],
       consumers: [
