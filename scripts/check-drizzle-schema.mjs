@@ -11,10 +11,6 @@ const root = resolve(import.meta.dirname, "..");
 const migrationsDirectory = resolve(root, "migrations");
 const drizzleDirectory = resolve(migrationsDirectory, "drizzle");
 
-function portablePath(path) {
-  return path.replaceAll("\\", "/");
-}
-
 function listFiles(directory, relativeDirectory = "") {
   const files = [];
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
@@ -40,8 +36,8 @@ function writeConfig(path, outputDirectory) {
     `export default ${JSON.stringify({
       dialect: "sqlite",
       migrations: { prefix: "timestamp" },
-      out: portablePath(relative(root, outputDirectory)),
-      schema: portablePath(resolve(root, "worker/db/schema.ts")),
+      out: relative(root, outputDirectory).replaceAll("\\", "/"),
+      schema: resolve(root, "worker/db/schema.ts").replaceAll("\\", "/"),
       strict: true,
       verbose: false
     })};\n`
