@@ -45,6 +45,10 @@
 
 ## About HQBase
 
+<p align="center">
+  <img src="public/hqbase-desktop-screenshot.png" alt="HQBase shared inbox interface">
+</p>
+
 HQBase gives teams one place to work with shared mailboxes while keeping the application, mail,
 and Cloudflare credentials in customer infrastructure. It includes:
 
