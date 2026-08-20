@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { cpSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join, relative, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { customSchemaObjects } from "../worker/db/schema-custom.ts";
@@ -262,7 +261,9 @@ function assertSchemaParity(history, generated) {
   );
 }
 
-const workspace = mkdtempSync(resolve(tmpdir(), "hqbase-drizzle-schema-"));
+// Drizzle Kit resolves its output from the project. Keep the disposable folder on the same drive
+// as the checkout so Windows never has to express a cross-drive relative path.
+const workspace = mkdtempSync(resolve(root, ".drizzle-schema-check-"));
 try {
   const generatedDirectory = resolve(workspace, "generated");
   const generatedConfig = resolve(workspace, "generated.config.mjs");
