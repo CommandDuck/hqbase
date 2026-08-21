@@ -1,7 +1,6 @@
 node_modules
 dist
 .wrangler
-/.drizzle-schema-check-*
 .dev.vars
 .env
 *.local

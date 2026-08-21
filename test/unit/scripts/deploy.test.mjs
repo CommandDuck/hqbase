@@ -126,13 +126,7 @@ describe("HQBase release deployment", () => {
       main: "worker/index.ts",
       compatibility_flags: ["nodejs_compat", "global_fetch_strictly_public"],
       assets: { directory: "./dist", binding: "ASSETS" },
-      d1_databases: [
-        {
-          binding: "DB",
-          migrations_dir: "migrations",
-          migrations_pattern: "migrations/**/*.sql"
-        }
-      ],
+      d1_databases: [{ binding: "DB", migrations_dir: "migrations" }],
       vars: {
         HQBASE_APP_VERSION: "0.1.1",
         HQBASE_RELEASE_ARTIFACT_SHA256: "b".repeat(64),

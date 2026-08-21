@@ -121,8 +121,7 @@ export function normalizeConfig(config, version, artifactSha256) {
     },
     d1_databases: config.d1_databases?.map((binding) => ({
       ...binding,
-      migrations_dir: "migrations",
-      migrations_pattern: "migrations/**/*.sql"
+      migrations_dir: "migrations"
     }))
   };
 }
