@@ -11,6 +11,20 @@ const releaseWorkflow = readFileSync(
 );
 
 describe("staging workflow lifecycle record", () => {
+  it("tests a populated SQL migration upgrade before deployment", () => {
+    const legacy = workflow.indexOf('set_migrations_dir "migrations-before-0014"');
+    const current = workflow.indexOf('set_migrations_dir "../../../migrations"');
+    const deploy = workflow.indexOf("pnpm exec wrangler deploy --config");
+
+    expect(legacy).toBeGreaterThan(-1);
+    expect(current).toBeGreaterThan(legacy);
+    expect(deploy).toBeGreaterThan(current);
+    expect(workflow).toContain("sql-upgrade-probe");
+    expect(workflow).toContain("msg_sql_upgrade");
+    expect(workflow).toContain('"is_unassigned":1');
+    expect(workflow).toContain('"migration_count":14');
+  });
+
   it("records the reviewed Worker deploy before cleanup", () => {
     const deploy = workflow.indexOf("pnpm exec wrangler deploy --config");
     const checkpoint = workflow.indexOf("recordWorkerDeployedForConfig");

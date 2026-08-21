@@ -1,4 +1,4 @@
-import { listThreadMessages } from "@worker/features/messages/queries";
+import { listThreadMessages, updateMessageAction } from "@worker/features/messages/queries";
 import type { MessageRow } from "@worker/features/messages/types";
 import { describe, expect, it, vi } from "vitest";
 
@@ -84,5 +84,26 @@ describe("message threads", () => {
       })
     ).resolves.toEqual([]);
     expect(prepare).not.toHaveBeenCalled();
+  });
+
+  it("updates only fields supplied by a message action", async () => {
+    const prepare = vi.fn((_sql: string) => ({
+      bind: vi.fn(() => ({
+        all: vi.fn(async () => ({ results: [row] })),
+        run: vi.fn(async () => ({ success: true }))
+      }))
+    }));
+
+    await updateMessageAction({ prepare } as unknown as D1Database, row.id, "read");
+
+    const updateSql = prepare.mock.calls
+      .map(([sql]) => sql)
+      .find((sql) => sql.startsWith('update "messages"'));
+    expect(updateSql).toContain('"read_at" = ?');
+    expect(updateSql).toContain('"updated_at" = ?');
+    expect(updateSql).not.toContain('"folder" =');
+    expect(updateSql).not.toContain('"starred_at" =');
+    expect(updateSql).not.toContain('"archived_at" =');
+    expect(updateSql).not.toContain('"trashed_at" =');
   });
 });

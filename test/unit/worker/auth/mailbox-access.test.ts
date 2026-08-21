@@ -13,12 +13,10 @@ describe("mailbox access levels", () => {
     prepare(sql: string) {
       const statement = {
         bind: () => statement,
-        first: async () => ({ access_level: "read" }),
         all: async () => ({
-          results: sql.includes("SELECT id FROM mailboxes")
-            ? [{ id: "mbx_owner" }]
-            : [{ mailbox_id: "mbx_member" }]
-        })
+          results: [{ access_level: "read" }]
+        }),
+        raw: async () => (sql.includes('from "mailboxes"') ? [["mbx_owner"]] : [["mbx_member"]])
       };
       return statement;
     }

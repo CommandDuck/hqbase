@@ -97,6 +97,15 @@ describe("conversation persistence", () => {
       updateConversationAction(env.DB, {
         action: "read",
         activeFolder: "inbox",
+        scope: { includeUnassigned: false, mailboxIds: ["mbx_other"] },
+        messageId: "msg_root_a"
+      })
+    ).rejects.toMatchObject({ code: "MESSAGE_NOT_FOUND", status: 404 });
+
+    await expect(
+      updateConversationAction(env.DB, {
+        action: "read",
+        activeFolder: "inbox",
         scope: { includeUnassigned: false, mailboxIds: ["mbx_conversations"] },
         messageId: "msg_root_a"
       })
